@@ -20,7 +20,7 @@ type PlayerCardProps = {
   team: Team;
   onStatChange: (
     name: string,
-    stat: "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm" | string[],
+    stat: "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm",
     delta: number
   ) => void;
   reset: boolean;
