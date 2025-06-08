@@ -8,7 +8,17 @@ import { db } from "../firebase";
 import { ConfirmationBox } from "./ConfirmationBox";
 import { ResultBox } from "./ResultBox";
 
-type StatTuple = { pts: number; reb: number; ast: number };
+type StatTuple = {
+  pts: number;
+  reb: number;
+  ast: number;
+  blk: number;
+  stl: number;
+  fga: number;
+  fgm: number;
+  tpa: number;
+  tpm: number;
+};
 
 export default function Game() {
   const SUBMIT_CODE = "@MCBL2025";
@@ -62,7 +72,17 @@ export default function Game() {
           return player.team === oppTeam || player.team === homeTeam ? true : false;
         })
         .forEach(({ name }) => {
-          initial[name] = { pts: 0, reb: 0, ast: 0 };
+          initial[name] = {
+            pts: 0,
+            reb: 0,
+            ast: 0,
+            blk: 0,
+            stl: 0,
+            fga: 0,
+            fgm: 0,
+            tpa: 0,
+            tpm: 0,
+          };
         });
       setPlayerStats(initial);
     }
@@ -84,12 +104,36 @@ export default function Game() {
     );
   }
 
-  const handleStatChange = (name: string, stat: keyof StatTuple, delta: number) => {
+  const handleStatChange = (
+    name: string,
+    stat: keyof StatTuple | Array<keyof StatTuple>,
+    delta: number
+  ) => {
     setPlayerStats((prev) => {
-      const old = prev[name] || { pts: 0, reb: 0, ast: 0 };
+      const old = prev[name] || {
+        pts: 0,
+        reb: 0,
+        ast: 0,
+        blk: 0,
+        stl: 0,
+        fga: 0,
+        fgm: 0,
+        tpa: 0,
+        tpm: 0,
+      };
+
+      const updated = { ...old };
+
+      if (Array.isArray(stat)) {
+        stat.forEach((stat) => {
+          updated[stat] = (updated[stat] ?? 0) + delta;
+        });
+      } else {
+        updated[stat] = (updated[stat] ?? 0) + delta;
+      }
       return {
         ...prev,
-        [name]: { ...old, [stat]: old[stat] + delta },
+        [name]: updated,
       };
     });
   };
@@ -103,7 +147,7 @@ export default function Game() {
       const player = playerList.find((p) => p.name === n);
       return player?.team === homeTeam;
     })
-    .reduce((sum, [, stats]) => sum + stats.pts, 0);
+    .reduce((sum, [, stats]) => sum + stats.tpm * 2 + stats.fgm, 0);
 
   const opponentScore = Object.entries(playerStats)
     .filter(([name]) => {
@@ -123,6 +167,8 @@ export default function Game() {
   const handleReset = (bool: boolean) => {
     setReset(bool);
   };
+
+  console.log(playerStats);
 
   const submitGame = async () => {
     if (codeInput === SUBMIT_CODE) {
