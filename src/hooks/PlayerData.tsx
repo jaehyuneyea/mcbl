@@ -1,29 +1,43 @@
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, type DocumentData } from "firebase/firestore";
 
 import { db } from "../firebase";
 export const gameData = await getDocs(collection(db, "games"));
-const gameList:object[] = [];
-export const test = await gameData.forEach((doc) => {
-    const data = doc.data();
-    gameList.push(data);
-})
 
-export type StatTuple = Record<"pts"|"reb"|"ast"|"blk"|"stl"|"fga"|"fgm"|"tpa"|"tpm", number>;
+const gameList: DocumentData[] = [];
+export const test = await gameData.forEach((doc) => {
+  const data = doc.data();
+  gameList.push(data);
+});
+
+export type StatTuple = Record<
+  "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm",
+  number
+>;
 type GameStats = Record<string, StatTuple>;
 
 export const statKeys: (keyof StatTuple)[] = [
-  "pts","reb","ast","blk","stl","fga","fgm","tpa","tpm"
+  "pts",
+  "reb",
+  "ast",
+  "blk",
+  "stl",
+  "fga",
+  "fgm",
+  "tpa",
+  "tpm",
 ];
 
 // frequency map of the number of games each player played
 const gamesPlayed = new Map<string, number>();
 
 const gameStats = gameList.map((game) => {
-    const players = Object.keys(game).filter(key => key !== "date" && key !== "teams").reduce((obj, key) => {
-        obj[key] = game[key];
-        return obj;
-    }, {});
-    return players;
+  const players = Object.keys(game)
+    .filter((key) => key !== "date" && key !== "teams")
+    .reduce((obj, key) => {
+      obj[key] = game[key];
+      return obj;
+    }, {} as GameStats);
+  return players;
 });
 
 export const totals: GameStats = gameStats.reduce((acc, game) => {
@@ -45,12 +59,13 @@ export const totals: GameStats = gameStats.reduce((acc, game) => {
 }, {} as GameStats);
 
 export const average = Object.entries(totals).map(([playerName, playerTotals]) => {
-    const avgStats = statKeys.reduce((acc, key) => {
-        acc[key] = (playerTotals[key] / gamesPlayed.get(playerName)).toFixed(1);
-        return acc;
-    }, {} as StatTuple);
+  const avgStats = statKeys.reduce((acc, key) => {
+    const gp = gamesPlayed.get(playerName)!;
+    acc[key] = parseFloat((playerTotals[key] / gp).toFixed(1));
+    return acc;
+  }, {} as StatTuple);
 
-    return [playerName, avgStats] as [string, StatTuple];
-})
+  return [playerName, avgStats] as [string, StatTuple];
+});
 
 export default function PlayerData() {}
