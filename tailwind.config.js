@@ -17,6 +17,7 @@ export default {
           tertiary_invert: "#FFFFFF61",
         },
         beige: '#EDE8D0',
+        cookie: '#B3947B',
         light_green: '#BEEBC2',
         dark_green: '#034E0A'
       }
