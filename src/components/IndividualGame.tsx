@@ -28,8 +28,8 @@ export default function IndividualGame({ game }: IndividualGameProps) {
     return { playerName, playerStats, jahScore: jahScoreNum };
   });
 
-  // 2) Find the highest score
   const maxJah = Math.max(...playerData.map((p) => p.jahScore));
+  const minJah = Math.min(...playerData.map((p) => p.jahScore));
 
   const date = game.date;
   const utcDate = new Date(Date.parse(date.valueOf()));
@@ -126,9 +126,19 @@ export default function IndividualGame({ game }: IndividualGameProps) {
                   className="text-text-primary font-medium text-lg even:bg-white odd:bg-gray-100"
                 >
                   {/* player’s name */}
-                  <td className="first:rounded-l-lg px-3 py-1 text-left">{playerName}{jahScore === maxJah && (
-                    <span className="ml-2 rounded bg-yellow-300 px-1 text-xs font-bold text-center">MVP</span>
-                  )}</td>
+                  <td className="first:rounded-l-lg px-3 py-1 text-left">
+                    {playerName}
+                    {jahScore === maxJah && (
+                      <span className="ml-2 rounded bg-yellow-300 px-1 text-xs font-bold text-center">
+                        MVP
+                      </span>
+                    )}
+                    {jahScore === minJah && (
+                      <span className="ml-2 rounded bg-red-500 px-1 text-xs text-white font-medium text-center">
+                        BUM
+                      </span>
+                    )}
+                  </td>
 
                   {/* one cell per statKey, pulling the right number out of playerStats */}
                   {statKeys.map((key) => (
