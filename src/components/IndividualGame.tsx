@@ -1,4 +1,4 @@
-import { Timestamp, type DocumentData } from "firebase/firestore";
+import { type DocumentData } from "firebase/firestore";
 import { nameMap } from "./Scoreboard";
 import { useState } from "react";
 import { DetailedStatBox } from "./DetailedStatBox";
