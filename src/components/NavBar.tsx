@@ -26,9 +26,9 @@ const NavBar = () => {
         <NavLink to="/leaderboards" end>
           <span className="text-text-secondary text-xl font-medium">Leaderboards</span>
         </NavLink>
-        {/* <NavLink to="/records" end>
+        <NavLink to="/records" end>
           <span className="text-text-secondary text-xl font-medium">Records</span>
-        </NavLink> */}
+        </NavLink>
       </div>
       <div></div>
     </header>

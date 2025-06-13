@@ -19,13 +19,17 @@ export const statKeys: (keyof StatTuple)[] = [
   "tpm",
 ];
 
+export async function fetchGameData(): Promise<DocumentData[]> {
+  return getDocs(collection(db, "games"))
+  .then((snapshot) => {
+    return snapshot.docs.map((d) => d.data() as DocumentData);
+  })
+}
+
 export async function loadPlayerStats(): Promise<[string, StatTuple][]> {
   const gamesPlayed = new Map<string, number>();
 
-  return getDocs(collection(db, "games"))
-    .then((snapshot) => {
-      return snapshot.docs.map((d) => d.data() as DocumentData);
-    })
+  return fetchGameData()
     .then((gameList) => {
       const gameStats = gameList.map((game) => {
         const players = Object.keys(game)

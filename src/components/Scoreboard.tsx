@@ -5,19 +5,18 @@ type ScoreboardProps = {
   opponentScore: number;
   opponentName: string;
 };
-
+export const nameMap = new Map<string, string>([
+  ["jjp", "Jah Jah Pelicans"],
+  ["ns", "Not Sure"],
+  ["lls", "Lapu Lapu Soldiers"],
+  ["dt", "Chang Bangers"],
+]);
 export default function Scoreboard({
   homeScore,
   homeName,
   opponentName,
   opponentScore,
 }: ScoreboardProps) {
-  const nameMap = new Map<string, string>([
-    ["jjp", "Jah Jah Pelicans"],
-    ["ns", "Not Sure"],
-    ["lls", "Lapu Lapu Soldiers"],
-    ["dt", "Chang Bangers"],
-  ]);
   return (
     <div className="flex text-[52px] justify-between font-medium w-full">
       <div className="flex flex-col gap-6">
