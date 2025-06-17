@@ -147,7 +147,7 @@ export default function Game() {
       const player = playerList.find((p) => p.name === n);
       return player?.team === homeTeam;
     })
-    .reduce((sum, [, stats]) => sum + stats.tpm * 2 + stats.fgm, 0);
+    .reduce((sum, [, stats]) => sum + stats.tpm + stats.fgm, 0);
 
   const opponentScore = Object.entries(playerStats)
     .filter(([name]) => {
@@ -167,8 +167,6 @@ export default function Game() {
   const handleReset = (bool: boolean) => {
     setReset(bool);
   };
-
-  console.log(playerStats);
 
   const submitGame = async () => {
     if (codeInput === SUBMIT_CODE) {
@@ -216,13 +214,13 @@ export default function Game() {
           <option value="jjp">Jah Jah Pelicans</option>
           <option value="ns">Not Sure</option>
           <option value="lls">Lapu Lapu Soldiers</option>
-          <option value="dt">Dave's Team</option>
+          <option value="dt">Chang Bangers</option>
         </select>
         <select id="opp" defaultValue="ns" onChange={handleSelectChange}>
           <option value="jjp">Jah Jah Pelicans</option>
           <option value="ns">Not Sure</option>
           <option value="lls">Lapu Lapu Soldiers</option>
-          <option value="dt">Dave's Team</option>
+          <option value="dt">Chang Bangers</option>
         </select>
       </div>
 

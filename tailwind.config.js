@@ -19,7 +19,9 @@ export default {
         beige: '#EDE8D0',
         cookie: '#B3947B',
         light_green: '#BEEBC2',
-        dark_green: '#034E0A'
+        dark_green: '#034E0A',
+        dark_grey: '#4B5563',
+        light_grey: '#E5E7EB'
       }
     },
   },

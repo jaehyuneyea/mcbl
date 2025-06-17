@@ -12,6 +12,8 @@ import Lex from "../assets/lex.png";
 import Vincent from "../assets/vincent.png";
 import Harvir from "../assets/harvir.png";
 import Brandon from "../assets/brandon.png";
+import Basketball from "../assets/basketball-1.svg";
+import x_icon from "../assets/x-symbol-svgrepo-com.svg";
 
 type Team = "home" | "opponent";
 
@@ -58,17 +60,24 @@ export default function PlayerCard({ name, onStatChange, reset, resetState }: Pl
       onStatChange(name, "pts", delta);
     }
     if (stat === "tpa") {
+      setFga((a) => a + delta);
       setTpa((a) => a + delta);
+      onStatChange(name, "fga", delta);
+      onStatChange(name, "tpa", delta);
     }
     if (stat === "tpm") {
+      setFga((a) => a + delta);
+      setFgm((a) => a + delta);
       setTpa((a) => a + delta);
       setTpm((a) => a + delta);
       setPts((a) => a + 2 * delta);
+      onStatChange(name, "fga", delta);
+      onStatChange(name, "fgm", delta);
       onStatChange(name, "tpa", delta);
       onStatChange(name, "tpm", delta);
-      onStatChange(name, "pts", delta * 2);
+      onStatChange(name, "pts", delta);
     }
-    if (stat !== "tpm" && stat !== "fgm") {
+    if (stat !== "tpm" && stat !== "fgm" && stat !== "tpa" && stat !== "pts") {
       onStatChange(name, stat, delta);
     }
   };
@@ -115,85 +124,106 @@ export default function PlayerCard({ name, onStatChange, reset, resetState }: Pl
   }, [reset]);
 
   return (
-    <div className="border-3 border-black shadow-lg rounded-lg p-4 flex flex-col items-center h-[700px] justify-between">
-      <div className="flex w-full h-1/2">
+    <div className="shadow-xl bg-white rounded-xl p-4 flex flex-col items-center h-[500px] justify-between">
+      <div className="flex w-full h-1/4 justify-around items-center rounded-full mt-5">
         <img
-          className="flex w-full h-full object-cover rounded-lg"
+          className="flex items-center w-1/3 h-full object-cover rounded-full"
           src={playerToImageMap.get(name)}
         ></img>
+        <div className="flex items-center text-[32px] text-center font-medium">{name}</div>
       </div>
-      <div className="text-[32px] font-medium">{name}</div>
-      <div className="flex w-full items-center border-5 justify-around w-8">
-        {(["pts", "reb", "ast", "blk", "stl"] as const).map((stat) => (
-          <div className="mt-2 flex flex-col text-center items-center">
-            <button
-              key={stat}
-              onClick={() => change(stat, +1)}
-              className="p-3 bg-green-500 text-white rounded"
-            >
-              +
-            </button>
-            <span className="text-lg font-medium">
-              {stat === "pts"
+      <div className="flex w-full items-center border-5 justify-around">
+        {(["PTS", "REB", "AST", "BLK", "STL"] as const).map((stat) => (
+          <div className="flex flex-col items-center">
+            <span className="text-4xl font-medium">
+              {stat === "PTS"
                 ? pts
-                : stat === "reb"
+                : stat === "REB"
                 ? reb
-                : stat === "ast"
+                : stat === "AST"
                 ? ast
-                : stat === "blk"
+                : stat === "BLK"
                 ? blk
                 : stl}{" "}
-              {stat}
             </span>
-            <button
-              key={stat}
-              onClick={() => change(stat, -1)}
-              className="p-3 bg-red-500 text-white rounded"
-            >
-              –
-            </button>
+            <span className="text-lg font-medium text-text-secondary/60">{stat}</span>
           </div>
         ))}
       </div>
-      <div className="flex w-full justify-around">
-        <div className="flex flex-col">
+      <div className="flex flex-col w-full items-center gap-3 font-medium">
+        <div className="flex w-full justify-around items-center">
           <button
             onClick={() => change("fgm", +1)}
             key="fgm"
-            className="p-3 bg-green-500 text-white rounded"
+            className="px-3 py-1 bg-dark_grey text-white rounded-2xl"
           >
-            Make
+            <div className="flex gap-2 px-2 py-1 justify-center">
+              <img src={Basketball} className="fill-white w-[18px] "></img>
+              Make
+            </div>
           </button>
-          <span className="text-lg font-medium">
+          <span className="text-xl w-1/3 text-center">
             {fgm} / {fga} FG
           </span>
           <button
             onClick={() => change("fga", +1)}
             key="fga"
-            className="p-3 bg-red-500 text-white rounded"
+            className="px-3 py-1 bg-light_grey text-dark_grey rounded-2xl"
           >
-            Miss
+            <div className="flex gap-3 px-2 py-1 justify-center">
+              <img src={x_icon} className="fill-white w-[18px] "></img>
+              Miss
+            </div>
           </button>
         </div>
-        <div className="flex flex-col">
+        <div className="flex w-full justify-around items-center">
           <button
             onClick={() => change("tpm", +1)}
             key="tpm"
-            className="p-3 bg-green-500 text-white rounded"
+            className="px-3 py-1 bg-dark_grey text-white rounded-2xl"
           >
-            Make
+            <div className="flex gap-2 px-2 py-1 justify-center">
+              <img src={Basketball} className="fill-white w-[18px]"></img>
+              Make
+            </div>
           </button>
-          <span className="text-lg font-medium">
+          <span className="text-xl w-1/3 text-center">
             {tpm} / {tpa} 3PT
           </span>
           <button
             onClick={() => change("tpa", +1)}
             key="tpa"
-            className="p-3 bg-red-500 text-white rounded"
+            className="px-3 py-1 bg-light_grey text-dark_grey rounded-2xl"
           >
-            Miss
+            <div className="flex gap-3 px-2 py-1 justify-center">
+              <img src={x_icon} className="fill-white w-[18px]"></img>
+              Miss
+            </div>
           </button>
         </div>
+      </div>
+      <div className="flex w-full items-center border-5 justify-around">
+        {(["reb", "ast", "blk", "stl"] as const).map((stat) => (
+          <div className="flex flex-col items-center">
+            <button
+              key={stat}
+              onClick={() => change(stat, +1)}
+              className="px-5 py-1 bg-dark_grey text-white rounded-2xl"
+            >
+              +
+            </button>
+            <span className="text-lg font-medium text-text-secondary/60">
+              {stat.toLocaleUpperCase()}
+            </span>
+            <button
+              key={stat}
+              onClick={() => change(stat, -1)}
+              className="px-5 py-1 bg-light_grey text-dark_grey rounded-2xl"
+            >
+              –
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
