@@ -1,4 +1,4 @@
-import mcblLogo from "../assets/mcbl_logo.png";
+import mcblLogo from "../assets/MCBL_web_logo.png";
 import { NavLink } from "react-router-dom";
 const NavBar = () => {
   return (
@@ -18,16 +18,43 @@ const NavBar = () => {
     z-100
   "
     >
-      <img className="w-[100px] rounded-lg" src={mcblLogo}></img>
+      <img className="w-[100px]" src={mcblLogo}></img>
       <div className="flex gap-12 justify-between">
         <NavLink to="/" end>
-          <span className="text-text-secondary text-xl font-medium">Game</span>
+          {({ isActive }) => (
+            <div className="flex flex-col items-center">
+              <span className="text-text-secondary text-xl font-medium">Game</span>
+              <div
+                className={`w-full h-[1px] mt-[4px] bg-text-primary transform origin-left  transition-transform duration-300 ease-in-out ${
+                  isActive ? "opacity-100 scale-x-100" : "scale-x-0 opacity-0"
+                }`}
+              ></div>
+            </div>
+          )}
         </NavLink>
         <NavLink to="/leaderboards" end>
-          <span className="text-text-secondary text-xl font-medium">Leaderboards</span>
+          {({ isActive }) => (
+            <div className="flex flex-col items-center">
+              <span className="text-text-secondary text-xl font-medium">Leaderboards</span>
+              <div
+                className={`w-full h-[1px] mt-[4px] bg-text-primary transform origin-left  transition-transform duration-300 ease-in-out ${
+                  isActive ? "opacity-100 scale-x-100" : "scale-x-0 opacity-0"
+                }`}
+              ></div>
+            </div>
+          )}
         </NavLink>
         <NavLink to="/records" end>
-          <span className="text-text-secondary text-xl font-medium">Records</span>
+          {({ isActive }) => (
+            <div className="flex flex-col items-center">
+              <span className="text-text-secondary text-xl font-medium">Records</span>
+              <div
+                className={`w-full h-[1px] mt-[4px] bg-text-primary transform origin-left transition-transform duration-300 ease-in-out ${
+                  isActive ? "opacity-100 scale-x-100" : "scale-x-0 opacity-0"
+                }`}
+              ></div>
+            </div>
+          )}
         </NavLink>
       </div>
       <div></div>

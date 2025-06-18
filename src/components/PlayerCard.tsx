@@ -124,7 +124,7 @@ export default function PlayerCard({ name, onStatChange, reset, resetState }: Pl
   }, [reset]);
 
   return (
-    <div className="shadow-xl bg-white rounded-xl p-4 flex flex-col items-center h-[500px] justify-between">
+    <div className="border shadow-xl bg-white rounded-xl p-4 flex flex-col items-center h-[500px] justify-between">
       <div className="flex w-full h-1/4 justify-around items-center rounded-full mt-5">
         <img
           className="flex items-center w-1/3 h-full object-cover rounded-full"

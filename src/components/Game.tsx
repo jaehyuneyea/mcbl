@@ -195,16 +195,16 @@ export default function Game() {
 
   return (
     <div className="space-y-6 p-4 mt-6 rounded-lg">
-      <div className="flex justify-between font-medium">
+      <div className="flex justify-between">
         <button
           onClick={() => handleReset(true)}
-          className="border border-red-700 rounded-md p-3 bg-red-500 text-text-tertiary"
+          className="border border-dark_grey rounded-md p-3 bg-light_grey text-text-secondary"
         >
           Reset
         </button>
         <button
           onClick={() => setPopUpOpen(true)}
-          className="border border-dark_green rounded-md p-3 bg-green-500 text-text-tertiary"
+          className="border border-dark_green rounded-md p-3 bg-dark_grey text-white"
         >
           Submit
         </button>

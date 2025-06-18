@@ -18,12 +18,12 @@ export default function Scoreboard({
   opponentScore,
 }: ScoreboardProps) {
   return (
-    <div className="flex text-[52px] justify-between font-medium w-full">
+    <div className="flex text-[64px] justify-between font-medium w-full">
       <div className="flex flex-col gap-6">
         <span>{nameMap.get(homeName)}</span>
         <span>{homeScore}</span>
       </div>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 text-right">
         <span>{nameMap.get(opponentName)}</span>
         <span>{opponentScore}</span>
       </div>
