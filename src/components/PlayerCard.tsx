@@ -1,5 +1,5 @@
 // PlayerCard.tsx
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import James from "../assets/james.png";
 import David from "../assets/david.png";
 import Nate from "../assets/nate.png";
@@ -14,6 +14,7 @@ import Harvir from "../assets/harvir.png";
 import Brandon from "../assets/brandon.png";
 import Basketball from "../assets/basketball-1.svg";
 import x_icon from "../assets/x-symbol-svgrepo-com.svg";
+import type { StatTuple } from "../hooks/PlayerData";
 
 type Team = "home" | "opponent";
 
@@ -25,52 +26,36 @@ type PlayerCardProps = {
     stat: "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm",
     delta: number
   ) => void;
+  stats: StatTuple;
   reset: boolean;
   resetState: (bool: boolean) => void;
 };
 
-export default function PlayerCard({ name, onStatChange, reset, resetState }: PlayerCardProps) {
-  const [pts, setPts] = useState(0);
-  const [reb, setReb] = useState(0);
-  const [ast, setAst] = useState(0);
-  const [blk, setBlk] = useState(0);
-  const [stl, setStl] = useState(0);
-  const [fga, setFga] = useState(0);
-  const [fgm, setFgm] = useState(0);
-  const [tpa, setTpa] = useState(0);
-  const [tpm, setTpm] = useState(0);
+export default function PlayerCard({
+  name,
+  onStatChange,
+  stats,
+  reset,
+  resetState,
+}: PlayerCardProps) {
+  const { pts, reb, ast, blk, stl, fga, fgm, tpa, tpm } = stats;
+
+  console.log(stats);
 
   const change = (
     stat: "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm",
     delta: number
   ) => {
-    if (stat === "reb") setReb((r) => r + delta);
-    if (stat === "ast") setAst((a) => a + delta);
-    if (stat === "blk") setBlk((a) => a + delta);
-    if (stat === "stl") setStl((a) => a + delta);
-    if (stat === "fga") {
-      setFga((a) => a + delta);
-    }
     if (stat === "fgm") {
-      setFga((a) => a + delta);
-      setFgm((a) => a + delta);
-      setPts((a) => a + 1);
       onStatChange(name, "fga", delta);
       onStatChange(name, "fgm", delta);
       onStatChange(name, "pts", delta);
     }
     if (stat === "tpa") {
-      setFga((a) => a + delta);
-      setTpa((a) => a + delta);
       onStatChange(name, "fga", delta);
       onStatChange(name, "tpa", delta);
     }
     if (stat === "tpm") {
-      setFga((a) => a + delta);
-      setFgm((a) => a + delta);
-      setTpa((a) => a + delta);
-      setTpm((a) => a + delta);
-      setPts((a) => a + 2 * delta);
       onStatChange(name, "fga", delta);
       onStatChange(name, "fgm", delta);
       onStatChange(name, "tpa", delta);
@@ -108,17 +93,6 @@ export default function PlayerCard({ name, onStatChange, reset, resetState }: Pl
       onStatChange(name, "fgm", -fgm);
       onStatChange(name, "tpa", -tpa);
       onStatChange(name, "tpm", -tpm);
-
-      setPts(0);
-      setReb(0);
-      setAst(0);
-      setBlk(0);
-      setStl(0);
-      setFga(0);
-      setFgm(0);
-      setTpa(0);
-      setTpm(0);
-
       resetState(false);
     }
   }, [reset]);

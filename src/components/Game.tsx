@@ -34,7 +34,10 @@ export default function Game() {
   const [codeInput, setCodeInput] = useState("");
   const [isSuccessPopUpOpen, setSuccesPopUpOpen] = useState(false);
   const [isSuccessful, setSuccessful] = useState(false);
-
+  const [history, setHistory] = useState<Record<string, StatTuple>[]>([]);
+  // a stack state that keeps track of every snapshot of the stat sheet as it is updated;
+  // the updates are trickled down to the cards now because the playerCard reads its values off the central stat sheet, no longer manages its own state.
+  // when handleStatChange is called, push onto stack, if undo, pop from the stack
   interface PlayerData {
     name: string;
     team: string;
@@ -104,11 +107,28 @@ export default function Game() {
     );
   }
 
+  const zeroStats: StatTuple = {
+  pts: 0,
+  reb: 0,
+  ast: 0,
+  blk: 0,
+  stl: 0,
+  fga: 0,
+  fgm: 0,
+  tpa: 0,
+  tpm: 0,
+};
+
   const handleStatChange = (
     name: string,
     stat: keyof StatTuple | Array<keyof StatTuple>,
     delta: number
   ) => {
+    setHistory((hist) => {
+      const last = hist[hist.length - 1]; // get top of the stack
+      if (last && shallowEqual(last, playerStats)) return hist; // if both are the same values, then just return
+      return [...hist, playerStats]; // push new value to the top
+    });
     setPlayerStats((prev) => {
       const old = prev[name] || {
         pts: 0,
@@ -137,6 +157,23 @@ export default function Game() {
       };
     });
   };
+
+
+  const undo = () => {
+    setHistory((hist) => {
+      if (hist.length === 0) return hist;
+      const last = hist[hist.length - 1]; // get the top of the stack
+      setPlayerStats(last);
+      return hist.slice(0, -1); // pop the top of the stack
+    });
+  };
+  // helper function to compare two playerStats record
+  function shallowEqual(a: Record<string, any>, b: Record<string, any>) {
+    const ka = Object.keys(a),
+      kb = Object.keys(b);
+    if (ka.length !== kb.length) return false;
+    return ka.every((k) => a[k] === b[k]);
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCodeInput(e.target.value);
@@ -203,6 +240,13 @@ export default function Game() {
           Reset
         </button>
         <button
+          onClick={undo}
+          disabled={history.length === 0}
+          className="border border-dark_grey rounded-md p-3 bg-light_grey text-text-secondary"
+        >
+          Undo
+        </button>
+        <button
           onClick={() => setPopUpOpen(true)}
           className="border border-dark_green rounded-md p-3 bg-dark_grey text-white"
         >
@@ -241,6 +285,7 @@ export default function Game() {
               name={player.name}
               team="home"
               onStatChange={handleStatChange}
+              stats={playerStats[player.name] ?? zeroStats}
               reset={reset}
               resetState={handleReset}
             />
@@ -254,6 +299,7 @@ export default function Game() {
               name={player.name}
               team="opponent"
               onStatChange={handleStatChange}
+              stats={playerStats[player.name] ?? zeroStats}
               reset={reset}
               resetState={handleReset}
             />
