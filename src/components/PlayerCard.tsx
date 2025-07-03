@@ -60,7 +60,7 @@ export default function PlayerCard({
       onStatChange(name, "fgm", delta);
       onStatChange(name, "tpa", delta);
       onStatChange(name, "tpm", delta);
-      onStatChange(name, "pts", delta);
+      onStatChange(name, "pts", delta * 2);
     }
     if (stat !== "tpm" && stat !== "fgm" && stat !== "tpa" && stat !== "pts") {
       onStatChange(name, stat, delta);
