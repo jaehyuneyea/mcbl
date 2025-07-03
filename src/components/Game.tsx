@@ -108,16 +108,16 @@ export default function Game() {
   }
 
   const zeroStats: StatTuple = {
-  pts: 0,
-  reb: 0,
-  ast: 0,
-  blk: 0,
-  stl: 0,
-  fga: 0,
-  fgm: 0,
-  tpa: 0,
-  tpm: 0,
-};
+    pts: 0,
+    reb: 0,
+    ast: 0,
+    blk: 0,
+    stl: 0,
+    fga: 0,
+    fgm: 0,
+    tpa: 0,
+    tpm: 0,
+  };
 
   const handleStatChange = (
     name: string,
@@ -157,7 +157,6 @@ export default function Game() {
       };
     });
   };
-
 
   const undo = () => {
     setHistory((hist) => {
@@ -232,35 +231,55 @@ export default function Game() {
 
   return (
     <div className="space-y-6 p-4 mt-6 rounded-lg">
-      <div className="flex justify-between">
-        <button
-          onClick={() => handleReset(true)}
-          className="border border-dark_grey rounded-md p-3 bg-light_grey text-text-secondary"
-        >
-          Reset
-        </button>
-        <button
-          onClick={undo}
-          disabled={history.length === 0}
-          className="border border-dark_grey rounded-md p-3 bg-light_grey text-text-secondary"
-        >
-          Undo
-        </button>
+      <div className="flex gap-2 justify-between">
+        <div className="flex gap-4">
+          {" "}
+          <button
+            onClick={() => handleReset(true)}
+            className="border border-gray-400 border-2 rounded-md p-3 bg-gray-100 text-text-secondary font-medium hover:bg-gray-200 transition"
+          >
+            Reset
+          </button>
+          <button
+            onClick={undo}
+            disabled={history.length === 0}
+                    className="
+          fixed bottom-6 right-6 
+          bg-gray-800 text-white 
+          p-4 rounded-full shadow-lg 
+          hover:bg-gray-700 
+          disabled:opacity-50 disabled:cursor-not-allowed
+          transition
+        "
+          >
+            Undo
+          </button>
+        </div>
+
         <button
           onClick={() => setPopUpOpen(true)}
-          className="border border-dark_green rounded-md p-3 bg-dark_grey text-white"
+          className="border border-dark_green border-2 rounded-md p-3 bg-dark_grey text-white font-medium hover:bg-gray-700 transition"
         >
           Submit
         </button>
       </div>
-      <div className="flex justify-between w-full">
-        <select id="home" onChange={handleSelectChange}>
+      <div className="flex justify-between w-full font-medium">
+        <select
+          className="rounded-lg origin-top-right p-1 shadow-lg ring-1 ring-black/5 focus:outline-hidden"
+          id="home"
+          onChange={handleSelectChange}
+        >
           <option value="jjp">Jah Jah Pelicans</option>
           <option value="ns">Not Sure</option>
           <option value="lls">Lapu Lapu Soldiers</option>
           <option value="dt">Chang Bangers</option>
         </select>
-        <select id="opp" defaultValue="ns" onChange={handleSelectChange}>
+        <select
+          className="rounded-lg origin-top-right p-1 shadow-lg ring-1 ring-black/5 focus:outline-hidden"
+          id="opp"
+          defaultValue="ns"
+          onChange={handleSelectChange}
+        >
           <option value="jjp">Jah Jah Pelicans</option>
           <option value="ns">Not Sure</option>
           <option value="lls">Lapu Lapu Soldiers</option>

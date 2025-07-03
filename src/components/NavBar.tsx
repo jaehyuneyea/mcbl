@@ -4,6 +4,7 @@ const NavBar = () => {
   return (
     <header
       className="
+    sticky
     w-full
     max-w-none
     mx-auto

@@ -2,7 +2,7 @@ import GameSection from "../components/GameSection";
 
 const Record = () => {
   return (
-    <div className="max-w-[1280px] mx-auto self-stretch flex flex-col bg-beige border">
+    <div className="max-w-7xl mx-auto self-stretch flex flex-col">
         <GameSection></GameSection>
     </div>
   );

@@ -2,7 +2,7 @@ import StatsSection from "../components/StatsSection";
 
 const Leaderboard = () => {
   return (
-    <div className="max-w-[1280px] mx-auto self-stretch flex flex-col bg-beige border">
+    <div className="max-w-7xl mx-auto self-stretch flex flex-col">
       <StatsSection></StatsSection>
     </div>
   );
