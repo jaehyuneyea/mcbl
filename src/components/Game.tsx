@@ -42,7 +42,6 @@ export default function Game() {
   const [playerList, setPlayerList] = useState<PlayerData[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [playerStats, setPlayerStats] = useState<Record<string, StatTuple>>({});
   const [isPopUpOpen, setPopUpOpen] = useState(false);
   const [codeInput, setCodeInput] = useState("");
   const [isSuccessPopUpOpen, setSuccesPopUpOpen] = useState(false);
