@@ -1,4 +1,4 @@
-import { collection, getDocs, type DocumentData } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, type DocumentData } from "firebase/firestore";
 
 import { db } from "../firebase";
 export type StatTuple = Record<
@@ -22,7 +22,13 @@ export const statKeys: (keyof StatTuple)[] = [
 ];
 
 export async function fetchGameData(): Promise<DocumentData[]> {
-  return getDocs(collection(db, "games"))
+
+  const gamesQuery = query(
+    collection(db, "games"),
+    orderBy("date", "desc")
+  );
+
+  return getDocs(gamesQuery)
   .then((snapshot) => {
     return snapshot.docs.map((d) => d.data() as DocumentData);
   })
