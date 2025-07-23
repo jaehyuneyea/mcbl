@@ -4,6 +4,7 @@ import { fetchGameData } from "../hooks/PlayerData";
 import type { DocumentData } from "firebase/firestore";
 export default function GameSection() {
   const [gameData, setGameData] = useState<DocumentData[] | null>(null);
+  let lastDate = "";
   useEffect(() => {
     fetchGameData()
       .then((game) => {
@@ -18,10 +19,23 @@ export default function GameSection() {
   }
 
   return (
-    <div className="flex flex-col w-full gap-3 px-3 py-6">
-      {gameData.map((result) => (
-        <IndividualGame game={result} />
-      ))}
-    </div>
+ <div>
+    {gameData.map((game) => {
+      const thisDate = new Date(game.date).toLocaleDateString();
+      const showDivider = thisDate !== lastDate;
+      lastDate = thisDate;
+
+      return (
+        <div key={game.id}>
+          {showDivider && (
+            <div className="my-4 text-center text-gray-500">
+              — {thisDate} —
+            </div>
+          )}
+          <IndividualGame game={game} />
+        </div>
+      );
+    })}
+  </div>
   );
 }
