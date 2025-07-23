@@ -2,7 +2,7 @@ import { collection, getDocs, type DocumentData } from "firebase/firestore";
 
 import { db } from "../firebase";
 export type StatTuple = Record<
-  "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm",
+  "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm" | "fta" | "ftm",
   number
 >;
 type GameStats = Record<string, StatTuple>;
@@ -17,6 +17,8 @@ export const statKeys: (keyof StatTuple)[] = [
   "fgm",
   "tpa",
   "tpm",
+  "fta",
+  "ftm"
 ];
 
 export async function fetchGameData(): Promise<DocumentData[]> {

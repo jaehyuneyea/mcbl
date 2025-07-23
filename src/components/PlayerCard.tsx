@@ -23,9 +23,10 @@ type PlayerCardProps = {
   team: Team;
   onStatChange: (
     name: string,
-    stat: "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm",
+    stat: "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm" | "fta" | "ftm",
     delta: number
   ) => void;
+  isPlayoffs: boolean;
   stats: StatTuple;
   reset: boolean;
   resetState: (bool: boolean) => void;
@@ -34,22 +35,31 @@ type PlayerCardProps = {
 export default function PlayerCard({
   name,
   onStatChange,
+  isPlayoffs,
   stats,
   reset,
   resetState,
 }: PlayerCardProps) {
-  const { pts, reb, ast, blk, stl, fga, fgm, tpa, tpm } = stats;
+  const { pts, reb, ast, blk, stl, fga, fgm, tpa, tpm, fta, ftm } = stats;
 
   console.log(stats);
 
   const change = (
-    stat: "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm",
+    stat: "pts" | "reb" | "ast" | "blk" | "stl" | "fga" | "fgm" | "tpa" | "tpm" | "fta" | "ftm",
     delta: number
   ) => {
     if (stat === "fgm") {
       onStatChange(name, "fga", delta);
       onStatChange(name, "fgm", delta);
       onStatChange(name, "pts", delta);
+    }
+    if (stat === "ftm") {
+      onStatChange(name, "fta", delta);
+      onStatChange(name, "ftm", delta);
+      onStatChange(name, "pts", delta);
+    }
+    if (stat === "fta") {
+      onStatChange(name, "fta", delta);
     }
     if (stat === "tpa") {
       onStatChange(name, "fga", delta);
@@ -62,7 +72,14 @@ export default function PlayerCard({
       onStatChange(name, "tpm", delta);
       onStatChange(name, "pts", delta * 2);
     }
-    if (stat !== "tpm" && stat !== "fgm" && stat !== "tpa" && stat !== "pts") {
+    if (
+      stat !== "tpm" &&
+      stat !== "fgm" &&
+      stat !== "tpa" &&
+      stat !== "pts" &&
+      stat !== "fta" &&
+      stat !== "ftm"
+    ) {
       onStatChange(name, stat, delta);
     }
   };
@@ -93,6 +110,8 @@ export default function PlayerCard({
       onStatChange(name, "fgm", -fgm);
       onStatChange(name, "tpa", -tpa);
       onStatChange(name, "tpm", -tpm);
+      onStatChange(name, "fta", -fta);
+      onStatChange(name, "ftm", -ftm);
       resetState(false);
     }
   }, [reset]);
@@ -175,6 +194,33 @@ export default function PlayerCard({
             </div>
           </button>
         </div>
+        {isPlayoffs && (
+          <div className="flex w-full justify-around items-center">
+            <button
+              onClick={() => change("ftm", +1)}
+              key="ftm"
+              className="px-3 py-1 bg-dark_grey text-white rounded-2xl"
+            >
+              <div className="flex gap-2 px-2 py-1 justify-center">
+                <img src={Basketball} className="fill-white w-[18px] "></img>
+                Make
+              </div>
+            </button>
+            <span className="text-xl w-1/3 text-center">
+              {ftm} / {fta} FT
+            </span>
+            <button
+              onClick={() => change("fta", +1)}
+              key="fta"
+              className="px-3 py-1 bg-light_grey text-dark_grey rounded-2xl"
+            >
+              <div className="flex gap-3 px-2 py-1 justify-center">
+                <img src={x_icon} className="fill-white w-[18px] "></img>
+                Miss
+              </div>
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex w-full items-center border-5 justify-around">
         {(["reb", "ast", "blk", "stl"] as const).map((stat) => (

@@ -18,6 +18,14 @@ type StatTuple = {
   fgm: number;
   tpa: number;
   tpm: number;
+  fta: number;
+  ftm: number;
+};
+
+// a game state that will be stored into the undo stack- holds individual player data as well as team fouls
+type GameState = {
+  players: Record<string, StatTuple>;
+  teamFouls: { home: number; opponent: number };
 };
 
 export default function Game() {
@@ -25,6 +33,11 @@ export default function Game() {
 
   const [homeTeam, setHomeTeam] = useState("jjp");
   const [oppTeam, setOppTeam] = useState("ns");
+  const [gameState, setGameState] = useState<GameState>({
+    players: {},
+    teamFouls: { home: 0, opponent: 0 },
+  });
+
   const [reset, setReset] = useState(false);
   const [playerList, setPlayerList] = useState<PlayerData[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +47,8 @@ export default function Game() {
   const [codeInput, setCodeInput] = useState("");
   const [isSuccessPopUpOpen, setSuccesPopUpOpen] = useState(false);
   const [isSuccessful, setSuccessful] = useState(false);
-  const [history, setHistory] = useState<Record<string, StatTuple>[]>([]);
+  const [isPlayoffs, setPlayoffs] = useState(false);
+  const [history, setHistory] = useState<GameState[]>([]);
   // a stack state that keeps track of every snapshot of the stat sheet as it is updated;
   // the updates are trickled down to the cards now because the playerCard reads its values off the central stat sheet, no longer manages its own state.
   // when handleStatChange is called, push onto stack, if undo, pop from the stack
@@ -42,7 +56,7 @@ export default function Game() {
     name: string;
     team: string;
   }
-
+  // loading player data from an excel file
   useEffect(() => {
     async function loadXlsx() {
       try {
@@ -67,6 +81,7 @@ export default function Game() {
     loadXlsx();
   }, []);
 
+  // initializing game state
   useEffect(() => {
     if (playerList) {
       const initial: Record<string, StatTuple> = {};
@@ -85,9 +100,12 @@ export default function Game() {
             fgm: 0,
             tpa: 0,
             tpm: 0,
+            fta: 0,
+            ftm: 0,
           };
         });
-      setPlayerStats(initial);
+      setGameState({ players: initial, teamFouls: { home: 0, opponent: 0 } });
+      setHistory([]);
     }
   }, [playerList, oppTeam, homeTeam]);
 
@@ -117,44 +135,43 @@ export default function Game() {
     fgm: 0,
     tpa: 0,
     tpm: 0,
+    fta: 0,
+    ftm: 0,
   };
 
   const handleStatChange = (
-    name: string,
-    stat: keyof StatTuple | Array<keyof StatTuple>,
+    who: string,
+    stat: keyof StatTuple | "fouls" | Array<keyof StatTuple>,
     delta: number
   ) => {
     setHistory((hist) => {
       const last = hist[hist.length - 1]; // get top of the stack
-      if (last && shallowEqual(last, playerStats)) return hist; // if both are the same values, then just return
-      return [...hist, playerStats]; // push new value to the top
+      if (last && shallowEqual(last, gameState)) return hist; // if both are the same values, then just return
+      return [...hist, gameState]; // push new value to the top
     });
-    setPlayerStats((prev) => {
-      const old = prev[name] || {
-        pts: 0,
-        reb: 0,
-        ast: 0,
-        blk: 0,
-        stl: 0,
-        fga: 0,
-        fgm: 0,
-        tpa: 0,
-        tpm: 0,
+    setGameState((prev) => {
+      const next: GameState = {
+        players: { ...prev.players },
+        teamFouls: { ...prev.teamFouls },
       };
 
-      const updated = { ...old };
-
-      if (Array.isArray(stat)) {
-        stat.forEach((stat) => {
-          updated[stat] = (updated[stat] ?? 0) + delta;
-        });
+      if ((who === "home" || who === "opponent") && stat === "fouls") {
+        next.teamFouls[who] += delta;
       } else {
-        updated[stat] = (updated[stat] ?? 0) + delta;
+        // stat here must be a StatTuple key or array thereof
+        const ps = { ...next.players[who] };
+        if (Array.isArray(stat)) {
+          stat.forEach((s) => {
+            ps[s] = (ps[s] || 0) + delta;
+          });
+        } else {
+          // Narrow out "fouls", then cast
+          const key = stat as keyof StatTuple;
+          ps[key] = (ps[key] || 0) + delta;
+        }
+        next.players[who] = ps;
       }
-      return {
-        ...prev,
-        [name]: updated,
-      };
+      return next;
     });
   };
 
@@ -162,7 +179,7 @@ export default function Game() {
     setHistory((hist) => {
       if (hist.length === 0) return hist;
       const last = hist[hist.length - 1]; // get the top of the stack
-      setPlayerStats(last);
+      setGameState(last);
       return hist.slice(0, -1); // pop the top of the stack
     });
   };
@@ -178,14 +195,14 @@ export default function Game() {
     setCodeInput(e.target.value);
   };
 
-  const homeScore = Object.entries(playerStats)
+  const homeScore = Object.entries(gameState.players)
     .filter(([n]) => {
       const player = playerList.find((p) => p.name === n);
       return player?.team === homeTeam;
     })
     .reduce((sum, [, stats]) => sum + stats.tpm + stats.fgm, 0);
 
-  const opponentScore = Object.entries(playerStats)
+  const opponentScore = Object.entries(gameState.players)
     .filter(([name]) => {
       const player = playerList.find((p) => p.name === name);
       return player?.team === oppTeam;
@@ -212,9 +229,11 @@ export default function Game() {
           team1: homeTeam,
           team2: oppTeam,
           score: [homeScore, opponentScore],
+          fouls: [gameState.teamFouls.home, gameState.teamFouls.opponent],
+          playoffs: isPlayoffs,
           winner: homeScore > opponentScore ? homeTeam : oppTeam,
         };
-        const gameData = { ...playerStats, date, teams };
+        const gameData = { ...gameState.players, date, teams };
         const docRef = await addDoc(collection(db, "games"), gameData);
         console.log("Success", docRef.id);
         setPopUpOpen(false);
@@ -240,10 +259,23 @@ export default function Game() {
           >
             Reset
           </button>
+          <label className="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              value=""
+              className="sr-only peer"
+              checked={isPlayoffs}
+              onChange={() => setPlayoffs(!isPlayoffs)}
+            />
+            <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"></div>
+            <span className="ms-3 text-sm font-medium text-gray-300 dark:text-gray-600">
+              Playoffs
+            </span>
+          </label>
           <button
             onClick={undo}
             disabled={history.length === 0}
-                    className="
+            className="
           fixed bottom-6 right-6 
           bg-gray-800 text-white 
           p-4 rounded-full shadow-lg 
@@ -290,9 +322,30 @@ export default function Game() {
       <Scoreboard
         homeName={homeTeam}
         homeScore={homeScore}
+        homeFouls={gameState.teamFouls.home}
         opponentName={oppTeam}
         opponentScore={opponentScore}
+        opponentFouls={gameState.teamFouls.opponent}
+        isPlayoffs={isPlayoffs}
       />
+      {isPlayoffs && (
+        <div className="flex mx-auto justify-between">
+          <button
+            onClick={() => handleStatChange("home", "fouls", +1)}
+            key="home"
+            className="rounded-md p-3 bg-gray-700 text-white font-medium hover:bg-gray-800 transition"
+          >
+            Foul
+          </button>
+          <button
+            onClick={() => handleStatChange("opponent", "fouls", +1)}
+            key="opp"
+            className="rounded-md p-3 bg-gray-700 text-white font-medium hover:bg-gray-800 transition"
+          >
+            Foul
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-4">
         {playerList
@@ -304,7 +357,8 @@ export default function Game() {
               name={player.name}
               team="home"
               onStatChange={handleStatChange}
-              stats={playerStats[player.name] ?? zeroStats}
+              isPlayoffs={isPlayoffs}
+              stats={gameState.players[player.name] ?? zeroStats}
               reset={reset}
               resetState={handleReset}
             />
@@ -318,7 +372,8 @@ export default function Game() {
               name={player.name}
               team="opponent"
               onStatChange={handleStatChange}
-              stats={playerStats[player.name] ?? zeroStats}
+              isPlayoffs={isPlayoffs}
+              stats={gameState.players[player.name] ?? zeroStats}
               reset={reset}
               resetState={handleReset}
             />
