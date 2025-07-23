@@ -13,7 +13,7 @@ export default function StatsCard({ stats }: StatCardProps) {
   return (
       <tr className="text-text-primary font-medium text-lg even:bg-white odd:bg-gray-100 ">
         {/* Player name */}
-        <td className="first:rounded-l-lg px-3 py-1 text-left">{player}</td>
+        <td className="first:rounded-l-lg px-3 py-1 text-left ">{player}</td>
 
         {/* Each raw stat */}
         {Object.entries(s).map(([_, val]) => (

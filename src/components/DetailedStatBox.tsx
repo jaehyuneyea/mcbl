@@ -23,7 +23,7 @@ export function DetailedStatBox({ isOpen, onClose, children }: ModalProps) {
       <div
         className="
           bg-white rounded-lg shadow-xl
-          max-w-[1600px] w-full p-6
+          w-full p-6
         "
         onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
       >

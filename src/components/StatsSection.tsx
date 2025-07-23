@@ -25,7 +25,7 @@ export default function StatsSection() {
   }
   const sorted = [...average].sort(([, aStats], [, bStats]) => bStats.pts - aStats.pts);
   return (
-    <div className="flex justify-center items-center w-full mx-auto p-6 ">
+    <div className="flex justify-center items-center w-50 lg:w-full mx-auto p-6 ">
       <table className="table-auto w-full border-separate border-spacing-y-0.5">
         <thead>
           <tr className="bg-cookie">

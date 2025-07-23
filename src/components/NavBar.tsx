@@ -4,12 +4,11 @@ const NavBar = () => {
   return (
     <header
       className="
-    sticky
+    sticky top-0 left-0
     w-full
-    max-w-none
-    mx-auto
     items-center
-    px-[clamp(24px,8vw,144px)]
+    px-6
+    lg:px-[8vw]
     flex flex-row
     justify-between
     font-sans
@@ -19,12 +18,12 @@ const NavBar = () => {
     z-100
   "
     >
-      <img className="w-[100px]" src={mcblLogo}></img>
-      <div className="flex gap-12 justify-between">
+      <img className="w-12 md:w-24" src={mcblLogo}></img>
+      <div className="flex gap-6 lg:gap-12 justify-between">
         <NavLink to="/" end>
           {({ isActive }) => (
             <div className="flex flex-col items-center">
-              <span className="text-text-secondary text-xl font-medium">Game</span>
+              <span className="text-text-secondary text-xs lg:text-xl font-medium">Game</span>
               <div
                 className={`w-full h-[1px] mt-[4px] bg-text-primary transform origin-left  transition-transform duration-300 ease-in-out ${
                   isActive ? "opacity-100 scale-x-100" : "scale-x-0 opacity-0"
@@ -36,7 +35,7 @@ const NavBar = () => {
         <NavLink to="/leaderboards" end>
           {({ isActive }) => (
             <div className="flex flex-col items-center">
-              <span className="text-text-secondary text-xl font-medium">Leaderboards</span>
+              <span className="text-text-secondary text-xs lg:text-xl font-medium">Leaderboards</span>
               <div
                 className={`w-full h-[1px] mt-[4px] bg-text-primary transform origin-left  transition-transform duration-300 ease-in-out ${
                   isActive ? "opacity-100 scale-x-100" : "scale-x-0 opacity-0"
@@ -48,7 +47,7 @@ const NavBar = () => {
         <NavLink to="/records" end>
           {({ isActive }) => (
             <div className="flex flex-col items-center">
-              <span className="text-text-secondary text-xl font-medium">Records</span>
+              <span className="text-text-secondary text-xs lg:text-xl font-medium">Records</span>
               <div
                 className={`w-full h-[1px] mt-[4px] bg-text-primary transform origin-left transition-transform duration-300 ease-in-out ${
                   isActive ? "opacity-100 scale-x-100" : "scale-x-0 opacity-0"
