@@ -34,12 +34,27 @@ export async function fetchGameData(): Promise<DocumentData[]> {
   })
 }
 
-export async function loadPlayerStats(): Promise<[string, StatTuple][]> {
+export async function fetchAvailableYears(): Promise<number[]> {
+  return fetchGameData().then((games) => {
+    const years = new Set<number>();
+    for (const game of games) {
+      if (game.date) {
+        years.add(new Date(game.date).getFullYear());
+      }
+    }
+    return Array.from(years).sort((a, b) => a - b);
+  });
+}
+
+export async function loadPlayerStats(year?: number): Promise<[string, StatTuple][]> {
   const gamesPlayed = new Map<string, number>();
 
   return fetchGameData()
     .then((gameList) => {
-      const gameStats = gameList.map((game) => {
+      const filtered = year
+        ? gameList.filter((g) => g.date && new Date(g.date).getFullYear() === year)
+        : gameList;
+      const gameStats = filtered.map((game) => {
         const players = Object.keys(game)
           .filter((key) => key !== "date" && key !== "teams")
           .reduce((obj, key) => {
@@ -80,6 +95,41 @@ export async function loadPlayerStats(): Promise<[string, StatTuple][]> {
         return [playerName, avgStats] as [string, StatTuple];
       });
     });
+}
+
+export type StatTupleWithGP = StatTuple & { gp: number };
+
+export async function loadPlayerStatsByYear(
+  playerName: string
+): Promise<Record<number, StatTupleWithGP>> {
+  return fetchGameData().then((games) => {
+    const byYear: Record<number, { totals: StatTuple; gp: number }> = {};
+    for (const game of games) {
+      const pStats = game[playerName];
+      if (!pStats || !game.date) continue;
+      const year = new Date(game.date).getFullYear();
+      if (!byYear[year]) {
+        byYear[year] = {
+          totals: statKeys.reduce((z, k) => { z[k] = 0; return z; }, {} as StatTuple),
+          gp: 0,
+        };
+      }
+      byYear[year].gp++;
+      for (const key of statKeys) byYear[year].totals[key] += pStats[key] || 0;
+    }
+    return Object.fromEntries(
+      Object.entries(byYear).map(([y, { totals, gp }]) => [
+        Number(y),
+        {
+          ...statKeys.reduce((avg, k) => {
+            avg[k] = parseFloat((totals[k] / gp).toFixed(1));
+            return avg;
+          }, {} as StatTuple),
+          gp,
+        },
+      ])
+    );
+  });
 }
 
 export default function PlayerData() {}

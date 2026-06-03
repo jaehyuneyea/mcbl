@@ -29,7 +29,7 @@ type GameState = {
 };
 
 export default function Game() {
-  const SUBMIT_CODE = "@MCBL2025";
+  const SUBMIT_CODE = "@MCBL2026";
 
   const [homeTeam, setHomeTeam] = useState("jjp");
   const [oppTeam, setOppTeam] = useState("ns");
@@ -301,9 +301,9 @@ export default function Game() {
           onChange={handleSelectChange}
         >
           <option value="jjp">Jah Jah Pelicans</option>
-          <option value="ns">Not Sure</option>
+          <option value="ns">Vancouver Vincents</option>
           <option value="lls">Lapu Lapu Soldiers</option>
-          <option value="dt">Chang Bangers</option>
+          <option value="dt">ChangHai Sharks</option>
         </select>
         <select
           className="rounded-lg origin-top-right p-1 shadow-lg ring-1 ring-black/5 focus:outline-hidden"
@@ -312,9 +312,9 @@ export default function Game() {
           onChange={handleSelectChange}
         >
           <option value="jjp">Jah Jah Pelicans</option>
-          <option value="ns">Not Sure</option>
+          <option value="ns">Vancouver Vincents</option>
           <option value="lls">Lapu Lapu Soldiers</option>
-          <option value="dt">Chang Bangers</option>
+          <option value="dt">ChangHai Sharks</option>
         </select>
       </div>
 

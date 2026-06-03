@@ -1,9 +1,11 @@
-import type { StatTuple } from "../hooks/PlayerData";
+import { statKeys, type StatTuple } from "../hooks/PlayerData";
 
 type StatCardProps = {
   stats: [string, StatTuple];
+  rank: number;
 };
-export default function StatsCard({ stats }: StatCardProps) {
+
+export default function StatsCard({ stats, rank }: StatCardProps) {
   const [player, s] = stats;
   const fga = s.fga === 0 ? 1 : s.fga;
   const tpa = s.tpa === 0 ? 1 : s.tpa;
@@ -11,20 +13,16 @@ export default function StatsCard({ stats }: StatCardProps) {
   const tpPct = ((s.tpm / tpa) * 100).toFixed(1);
 
   return (
-      <tr className="text-text-primary font-medium text-lg even:bg-white odd:bg-gray-100 ">
-        {/* Player name */}
-        <td className="first:rounded-l-lg px-3 py-1 text-left ">{player}</td>
-
-        {/* Each raw stat */}
-        {Object.entries(s).map(([_, val]) => (
-          <td key={_} className="px-2 py-1 text-right">
-            {val}
-          </td>
-        ))}
-
-        {/* Percentages */}
-        <td className="px-2 py-1 text-right">{fgPct}</td>
-        <td className="last:rounded-r-lg px-2 py-1 text-right">{tpPct}</td>
-      </tr>
+    <tr className="text-base transition-colors even:bg-white odd:bg-gray-50 hover:bg-gray-100">
+      <td className="px-3 py-3 text-text-tertiary font-medium">{rank}</td>
+      <td className="px-4 py-3 font-semibold text-text-secondary whitespace-nowrap">{player}</td>
+      {statKeys.map((key) => (
+        <td key={key} className="px-3 py-3 text-right font-medium tabular-nums text-text-primary">
+          {s[key]}
+        </td>
+      ))}
+      <td className="px-3 py-3 text-right font-medium tabular-nums text-text-tertiary">{fgPct}%</td>
+      <td className="px-3 py-3 text-right font-medium tabular-nums text-text-tertiary">{tpPct}%</td>
+    </tr>
   );
 }

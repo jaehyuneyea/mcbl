@@ -10,9 +10,9 @@ type ScoreboardProps = {
 };
 export const nameMap = new Map<string, string>([
   ["jjp", "Jah Jah Pelicans"],
-  ["ns", "Not Sure"],
+  ["ns", "Vancouver Vincents"],
   ["lls", "Lapu Lapu Soldiers"],
-  ["dt", "Chang Bangers"],
+  ["dt", "ChangHai Sharks"],
 ]);
 export default function Scoreboard({
   homeScore,

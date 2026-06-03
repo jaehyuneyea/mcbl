@@ -14,16 +14,12 @@ export default function IndividualGame({ game }: IndividualGameProps) {
     return <div>Loading…</div>;
   }
 
-  const teams = Object.entries(game).filter((entry) => {
-    return entry[0] === "teams";
-  });
-
-  const stats = Object.entries(game).filter((entry) => {
-    return entry[0] !== "teams" && entry[0] !== "date";
-  });
+  const teams = Object.entries(game).filter((entry) => entry[0] === "teams");
+  const stats = Object.entries(game).filter(
+    (entry) => entry[0] !== "teams" && entry[0] !== "date"
+  );
 
   const playerData = stats.map(([playerName, playerStats]) => {
-    // calculateJahScore returns a string; turn it into a number
     const jahScoreNum = Number(calculateJahScore(playerStats));
     return { playerName, playerStats, jahScore: jahScoreNum };
   });
@@ -36,13 +32,12 @@ export default function IndividualGame({ game }: IndividualGameProps) {
 
   const pstString = utcDate.toLocaleString("en-US", {
     timeZone: "America/Los_Angeles",
+    month: "short",
+    day: "numeric",
     year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
+    hour12: true,
   });
 
   function calculateJahScore(playerStats: any) {
@@ -60,108 +55,125 @@ export default function IndividualGame({ game }: IndividualGameProps) {
 
   const results = teams[0][1];
   const winner = results.winner;
-
   const score = results.score;
   const team1 = results.team1;
   const team2 = results.team2;
+
   return (
     <div
-      onClick={() => {
-        setPopUpOpen(true);
-      }}
-      className="w-100 border text-3xl font-medium bg-white shadow-lg rounded-lg p-6 hover:cursor-pointer"
+      onClick={() => setPopUpOpen(true)}
+      className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 hover:shadow-md cursor-pointer transition-shadow"
     >
-      <div className="flex justify-between">
-        <div className="w-1/3">
-          <span className={winner === team1 ? "text-green-400" : "text-black"}>
+      <div className="flex items-center justify-between">
+        <div className="w-2/5">
+          <span
+            className={`text-base font-semibold ${
+              winner === team1 ? "text-text-secondary" : "text-gray-400"
+            }`}
+          >
             {nameMap.get(team1)}
           </span>
         </div>
 
-        <div className="text-center w-1/3 text-4xl">
-          <span>{score[0]}</span>
-          <span>:</span>
-          <span>{score[1]}</span>
+        <div className="flex items-center gap-3 text-2xl font-bold tabular-nums">
+          <span className={winner === team1 ? "text-text-secondary" : "text-gray-300"}>
+            {score[0]}
+          </span>
+          <span className="text-gray-300 text-base font-normal">—</span>
+          <span className={winner === team2 ? "text-text-secondary" : "text-gray-300"}>
+            {score[1]}
+          </span>
         </div>
-        <div className="w-1/3 text-right">
-          <span className={winner === team2 ? "text-green-400" : "text-black"}>
+
+        <div className="w-2/5 text-right">
+          <span
+            className={`text-base font-semibold ${
+              winner === team2 ? "text-text-secondary" : "text-gray-400"
+            }`}
+          >
             {nameMap.get(team2)}
           </span>
         </div>
       </div>
-      <DetailedStatBox isOpen={isPopUpOpen} onClose={() => setPopUpOpen(false)}>
-        <div className="text-sm">
-          <div className="flex text-xl font-medium justify-between gap-6 mb-12 pb-12">
-            <div className="flex flex-col gap-6">
-              <span>{nameMap.get(team1)}</span>
-              <span className="text-[52px]">{score[0]}</span>
-            </div>
-            <div className="text-sm">{pstString}</div>
 
-            <div className="flex flex-col gap-6 text-right">
-              <span>{nameMap.get(team2)}</span>
-              <span className="text-[52px]">{score[1]}</span>
+      <DetailedStatBox isOpen={isPopUpOpen} onClose={() => setPopUpOpen(false)}>
+        <div>
+          {/* Score header */}
+          <div className="flex items-start justify-between mb-5 pb-5 border-b border-gray-100">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                {nameMap.get(team1)}
+              </span>
+              <span
+                className={`text-5xl font-bold tabular-nums ${
+                  winner === team1 ? "text-text-secondary" : "text-gray-300"
+                }`}
+              >
+                {score[0]}
+              </span>
+            </div>
+            <span className="text-xs text-gray-400 self-center">{pstString}</span>
+            <div className="flex flex-col gap-1 text-right">
+              <span className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                {nameMap.get(team2)}
+              </span>
+              <span
+                className={`text-5xl font-bold tabular-nums ${
+                  winner === team2 ? "text-text-secondary" : "text-gray-300"
+                }`}
+              >
+                {score[1]}
+              </span>
             </div>
           </div>
-          <div className="w-full overflow-x-auto">
-            <table className="table-auto w-full border-separate border-spacing-y-0.5">
+
+          {/* Stats table */}
+          <div className="w-full overflow-x-auto rounded-lg overflow-hidden border border-gray-100">
+            <table className="table-auto w-full">
               <thead>
-                <tr className="bg-cookie">
-                  <th className="px-3 py-1 text-left">Player</th>
+                <tr className="bg-gray-200 text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                  <th className="px-3 py-2.5 text-left">Player</th>
                   {statKeys.map((key) => (
-                    <th key={key} className="w-1/12 px-2 py-1 text-right">
+                    <th key={key} className="px-3 py-2.5 text-right">
                       {key.toUpperCase()}
                     </th>
                   ))}
-                  <th className="px-2 py-1 text-right">FG%</th>
-                  <th className="px-2 py-1 text-right">3P%</th>
-                  <th className="px-2 py-1 text-right">JahScore</th>
+                  <th className="px-3 py-2.5 text-right">FG%</th>
+                  <th className="px-3 py-2.5 text-right">3P%</th>
+                  <th className="px-3 py-2.5 text-right">JAH</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {playerData.map(({ playerName, playerStats, jahScore }) => (
                   <tr
                     key={playerName}
-                    className="text-text-primary font-medium text-lg even:bg-white odd:bg-gray-100"
+                    className="text-base transition-colors even:bg-white odd:bg-gray-50 hover:bg-gray-100"
                   >
-                    {/* player’s name */}
-                    <td className="first:rounded-l-lg px-3 py-1 text-left">
+                    <td className="px-3 py-2.5 font-semibold text-text-secondary whitespace-nowrap">
                       {playerName}
                       {jahScore === maxJah && (
-                        <span className="ml-2 rounded bg-yellow-300 px-1 text-xs font-bold text-center">
+                        <span className="ml-2 rounded bg-yellow-300 px-1 text-xs font-bold">
                           MVP
                         </span>
                       )}
                       {jahScore === minJah && (
-                        <span className="ml-2 rounded bg-red-500 px-1 text-xs text-white font-medium text-center">
+                        <span className="ml-2 rounded bg-red-100 text-red-500 px-1 text-xs font-semibold">
                           BUM
                         </span>
                       )}
                     </td>
-
-                    {/* one cell per statKey, pulling the right number out of playerStats */}
                     {statKeys.map((key) => (
-                      <td key={key} className="w-1/12 px-2 py-1 text-right">
+                      <td key={key} className="px-3 py-2.5 text-right tabular-nums text-text-primary font-medium">
                         {playerStats[key]}
                       </td>
                     ))}
-
-                    {/* FG% and 3P% columns */}
-                    <td className="px-2 py-1 text-right">
-                      {(
-                        (playerStats.fgm / (playerStats.fga === 0 ? 1 : playerStats.fga)) *
-                        100
-                      ).toFixed(1)}
-                      %
+                    <td className="px-3 py-2.5 text-right tabular-nums text-text-tertiary font-medium">
+                      {((playerStats.fgm / (playerStats.fga === 0 ? 1 : playerStats.fga)) * 100).toFixed(1)}%
                     </td>
-                    <td className="last:rounded-r-lg px-2 py-1 text-right">
-                      {(
-                        (playerStats.tpm / (playerStats.tpa === 0 ? 1 : playerStats.tpa)) *
-                        100
-                      ).toFixed(1)}
-                      %
+                    <td className="px-3 py-2.5 text-right tabular-nums text-text-tertiary font-medium">
+                      {((playerStats.tpm / (playerStats.tpa === 0 ? 1 : playerStats.tpa)) * 100).toFixed(1)}%
                     </td>
-                    <td className="last:rounded-r-lg px-2 py-1 text-right">
+                    <td className="px-3 py-2.5 text-right tabular-nums text-text-tertiary font-medium">
                       {calculateJahScore(playerStats)}
                     </td>
                   </tr>

@@ -28,8 +28,10 @@ export default function GameSection() {
       return (
         <div key={game.id}>
           {showDivider && (
-            <div className="my-4 text-center text-gray-500">
-              — {thisDate} —
+            <div className="flex items-center gap-3 my-5">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">{thisDate}</span>
+              <div className="flex-1 h-px bg-gray-200" />
             </div>
           )}
           <IndividualGame game={game} />

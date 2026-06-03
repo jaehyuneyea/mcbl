@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import James from "../assets/james.png";
 import David from "../assets/david.png";
-import Nate from "../assets/nate.png";
+import Nate from "../assets/nathean.png";
 import Sonny from "../assets/sonny.png";
 import Jae from "../assets/jae_hyune.png";
 import Jirah from "../assets/jirah.png";
@@ -13,6 +13,7 @@ import Vincent from "../assets/vincent.png";
 import Harvir from "../assets/harvir.png";
 import Brandon from "../assets/brandon.png";
 import Basketball from "../assets/basketball-1.svg";
+import Gabe from "../assets/gabriel.png";
 import x_icon from "../assets/x-symbol-svgrepo-com.svg";
 import type { StatTuple } from "../hooks/PlayerData";
 
@@ -97,6 +98,7 @@ export default function PlayerCard({
     ["Harvir Dhaliwal", Harvir],
     ["Matthew Kim", Matthew],
     ["Rayan Bilkhu", Rayan],
+    ["Gabriel Cho", Gabe]
   ]);
 
   useEffect(() => {

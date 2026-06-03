@@ -21,16 +21,13 @@ export function DetailedStatBox({ isOpen, onClose, children }: ModalProps) {
       onClick={onClose} // close when backdrop is clicked
     >
       <div
-        className="
-          bg-white rounded-lg shadow-xl
-          w-full p-6
-        "
-        onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+        className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 mx-4"
+        onClick={(e) => e.stopPropagation()}
       >
         {children}
         <button
           onClick={onClose}
-          className="mt-4 px-4 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+          className="mt-4 px-4 py-2 text-sm bg-gray-200 text-gray-600 font-medium rounded hover:bg-gray-300 transition-colors"
         >
           Close
         </button>
