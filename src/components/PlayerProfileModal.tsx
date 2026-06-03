@@ -5,9 +5,15 @@ import {
   loadPlayerStats,
   loadPlayerStatsByYear,
   statKeys,
+  type SeasonType,
   type StatTuple,
   type StatTupleWithGP,
 } from "../hooks/PlayerData";
+
+const SEASON_OPTIONS: { label: string; value: SeasonType }[] = [
+  { label: "Regular", value: "regular" },
+  { label: "Playoffs", value: "playoffs" },
+];
 
 const imageModules = import.meta.glob<string>("../assets/*.png", {
   eager: true,
@@ -29,15 +35,15 @@ function getTopStats(s: StatTuple): StatCategory[] {
   const fgPct = s.fgm / (s.fga || 1);
   const tpPct = s.tpm / (s.tpa || 1);
   const categories: StatCategory[] = [
-    { label: "PTS",  value: String(s.pts),                    score: s.pts * 1 },
-    { label: "REB",  value: String(s.reb),                    score: s.reb * 0.5 },
-    { label: "AST",  value: String(s.ast),                    score: s.ast * 2 },
-    { label: "BLK",  value: String(s.blk),                    score: s.blk * 3 },
-    { label: "STL",  value: String(s.stl),                    score: s.stl * 3 },
-    { label: "FG%",  value: (fgPct * 100).toFixed(1) + "%",   score: fgPct * 15 },
-    { label: "3P%",  value: (tpPct * 100).toFixed(1) + "%",   score: tpPct * 20 },
-    { label: "FGA",  value: String(s.fga),                    score: s.fga * 0.2 },
-    { label: "3PA",  value: String(s.tpa),                    score: s.tpa * 0.4 },
+    { label: "PTS", value: String(s.pts),                  score: s.pts * 1 },
+    { label: "REB", value: String(s.reb),                  score: s.reb * 0.5 },
+    { label: "AST", value: String(s.ast),                  score: s.ast * 2 },
+    { label: "BLK", value: String(s.blk),                  score: s.blk * 3 },
+    { label: "STL", value: String(s.stl),                  score: s.stl * 3 },
+    { label: "FG%", value: (fgPct * 100).toFixed(1) + "%", score: fgPct * 15 },
+    { label: "3P%", value: (tpPct * 100).toFixed(1) + "%", score: tpPct * 20 },
+    { label: "FGA", value: String(s.fga),                  score: s.fga * 0.2 },
+    { label: "3PA", value: String(s.tpa),                  score: s.tpa * 0.4 },
   ];
   return categories.sort((a, b) => b.score - a.score).slice(0, 3);
 }
@@ -52,23 +58,23 @@ export default function PlayerProfileModal({ playerName, team, onClose }: Props)
   const [careerStats, setCareerStats] = useState<StatTuple | null>(null);
   const [statsByYear, setStatsByYear] = useState<Record<number, StatTupleWithGP>>({});
   const [loading, setLoading] = useState(true);
+  const [seasonType, setSeasonType] = useState<SeasonType>("regular");
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      loadPlayerStats(),
-      loadPlayerStatsByYear(playerName),
+      loadPlayerStats(undefined, seasonType),
+      loadPlayerStatsByYear(playerName, seasonType),
     ]).then(([allPlayers, byYear]) => {
       const entry = allPlayers.find(([name]) => name === playerName);
       setCareerStats(entry ? entry[1] : null);
       setStatsByYear(byYear);
     }).finally(() => setLoading(false));
-  }, [playerName]);
+  }, [playerName, seasonType]);
 
   const sortedYears = Object.keys(statsByYear).map(Number).sort((a, b) => b - a);
   const mostRecentStats = sortedYears.length > 0 ? statsByYear[sortedYears[0]] : careerStats;
   const top3 = mostRecentStats ? getTopStats(mostRecentStats) : [];
-
   const img = getImage(playerName);
 
   return (
@@ -79,22 +85,41 @@ export default function PlayerProfileModal({ playerName, team, onClose }: Props)
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {/* Profile header */}
-          <div className="flex items-center gap-4">
-            {img ? (
-              <img
-                src={img}
-                alt={playerName}
-                className="w-20 h-20 rounded-full object-cover flex-shrink-0 ring-2 ring-gray-100"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-2xl font-semibold text-gray-400">
-                {playerName.charAt(0)}
+          {/* Profile header + season toggle */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {img ? (
+                <img
+                  src={img}
+                  alt={playerName}
+                  className="w-20 h-20 rounded-full object-cover flex-shrink-0 ring-2 ring-gray-100"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-2xl font-semibold text-gray-400">
+                  {playerName.charAt(0)}
+                </div>
+              )}
+              <div>
+                <h2 className="text-xl font-bold text-text-secondary">{playerName}</h2>
+                <span className="text-sm text-gray-400 font-medium">{nameMap.get(team)}</span>
               </div>
-            )}
-            <div>
-              <h2 className="text-xl font-bold text-text-secondary">{playerName}</h2>
-              <span className="text-sm text-gray-400 font-medium">{nameMap.get(team)}</span>
+            </div>
+
+            {/* Season toggle */}
+            <div className="flex rounded-full border border-gray-200 bg-white overflow-hidden flex-shrink-0">
+              {SEASON_OPTIONS.map(({ label, value }) => (
+                <button
+                  key={value}
+                  onClick={() => setSeasonType(value)}
+                  className={`px-4 py-1.5 text-sm font-semibold transition-all duration-200 ${
+                    seasonType === value
+                      ? "bg-gray-600 text-white"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -131,7 +156,13 @@ export default function PlayerProfileModal({ playerName, team, onClose }: Props)
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {sortedYears.map((year) => {
+                {sortedYears.length === 0 ? (
+                  <tr>
+                    <td colSpan={statKeys.length + 4} className="px-3 py-6 text-center text-sm text-gray-400">
+                      No {seasonType} season games found.
+                    </td>
+                  </tr>
+                ) : sortedYears.map((year) => {
                   const s = statsByYear[year];
                   const fgPct = ((s.fgm / (s.fga || 1)) * 100).toFixed(1);
                   const tpPct = ((s.tpm / (s.tpa || 1)) * 100).toFixed(1);

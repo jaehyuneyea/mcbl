@@ -7,6 +7,8 @@ export type StatTuple = Record<
 >;
 type GameStats = Record<string, StatTuple>;
 
+export type SeasonType = "all" | "regular" | "playoffs";
+
 export const statKeys: (keyof StatTuple)[] = [
   "pts",
   "reb",
@@ -21,35 +23,37 @@ export const statKeys: (keyof StatTuple)[] = [
   "ftm"
 ];
 
-export async function fetchGameData(): Promise<DocumentData[]> {
+function filterBySeason(games: DocumentData[], seasonType: SeasonType): DocumentData[] {
+  if (seasonType === "playoffs") return games.filter((g) => g.teams?.playoffs === true);
+  if (seasonType === "regular") return games.filter((g) => !g.teams?.playoffs);
+  return games;
+}
 
+export async function fetchGameData(seasonType: SeasonType = "all"): Promise<DocumentData[]> {
   const gamesQuery = query(
     collection(db, "games"),
     orderBy("date", "desc")
   );
-
-  return getDocs(gamesQuery)
-  .then((snapshot) => {
-    return snapshot.docs.map((d) => d.data() as DocumentData);
-  })
+  return getDocs(gamesQuery).then((snapshot) => {
+    const docs = snapshot.docs.map((d) => d.data() as DocumentData);
+    return filterBySeason(docs, seasonType);
+  });
 }
 
-export async function fetchAvailableYears(): Promise<number[]> {
-  return fetchGameData().then((games) => {
+export async function fetchAvailableYears(seasonType: SeasonType = "all"): Promise<number[]> {
+  return fetchGameData(seasonType).then((games) => {
     const years = new Set<number>();
     for (const game of games) {
-      if (game.date) {
-        years.add(new Date(game.date).getFullYear());
-      }
+      if (game.date) years.add(new Date(game.date).getFullYear());
     }
     return Array.from(years).sort((a, b) => a - b);
   });
 }
 
-export async function loadPlayerStats(year?: number): Promise<[string, StatTuple][]> {
+export async function loadPlayerStats(year?: number, seasonType: SeasonType = "all"): Promise<[string, StatTuple][]> {
   const gamesPlayed = new Map<string, number>();
 
-  return fetchGameData()
+  return fetchGameData(seasonType)
     .then((gameList) => {
       const filtered = year
         ? gameList.filter((g) => g.date && new Date(g.date).getFullYear() === year)
@@ -75,7 +79,6 @@ export async function loadPlayerStats(year?: number): Promise<[string, StatTuple
             }, {} as StatTuple);
           }
           gamesPlayed.set(player, (gamesPlayed.get(player) ?? 0) + 1);
-          // add each stat
           for (const key of statKeys) {
             acc[player][key] += stats[key] || 0;
           }
@@ -91,7 +94,6 @@ export async function loadPlayerStats(year?: number): Promise<[string, StatTuple
           acc[key] = parseFloat((playerTotals[key] / gp).toFixed(1));
           return acc;
         }, {} as StatTuple);
-        // console.log(gamesPlayed);
         return [playerName, avgStats] as [string, StatTuple];
       });
     });
@@ -100,9 +102,10 @@ export async function loadPlayerStats(year?: number): Promise<[string, StatTuple
 export type StatTupleWithGP = StatTuple & { gp: number };
 
 export async function loadPlayerStatsByYear(
-  playerName: string
+  playerName: string,
+  seasonType: SeasonType = "all"
 ): Promise<Record<number, StatTupleWithGP>> {
-  return fetchGameData().then((games) => {
+  return fetchGameData(seasonType).then((games) => {
     const byYear: Record<number, { totals: StatTuple; gp: number }> = {};
     for (const game of games) {
       const pStats = game[playerName];
