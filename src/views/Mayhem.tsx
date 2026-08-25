@@ -23,6 +23,7 @@ import {
   TeamTraits,
   yearTag,
 } from "../mayhem/MayhemShared";
+import { RunSummary } from "../mayhem/RunSummary";
 
 const ROUND_LABEL: Record<PlayoffRound, string> = {
   QF: "Quarterfinals",
@@ -530,6 +531,10 @@ export default function Mayhem() {
                           ? i === 0
                             ? "text-red-600 font-semibold"
                             : "text-red-400 font-medium"
+                          : tick.lifted
+                          ? i === 0
+                            ? "text-amber-500 font-semibold"
+                            : "text-amber-400 font-medium"
                           : tick.strength || tick.heated
                           ? i === 0
                             ? "text-emerald-600 font-semibold"
@@ -540,7 +545,12 @@ export default function Mayhem() {
                       }`}
                     >
                       {/* A bucket the hot hand helped produce */}
-                      {tick.heated && (
+                      {tick.lifted && (
+                        <span title="Lifted by the Bard — playing way above himself" className="mr-1">
+                          ⚡
+                        </span>
+                      )}
+                      {tick.heated && !tick.lifted && (
                         <span title="Heat check — riding a hot streak" className="mr-1">
                           🔥
                         </span>
@@ -648,10 +658,14 @@ export default function Mayhem() {
                   }`}
                 >
                   {h.result.won ? "W" : "L"} {h.result.myScore}–{h.result.oppScore}
+                  {h.result.overtime ? " (OT)" : ""}
                 </span>
               </div>
             ))}
           </div>
+
+          {/* Full stat sheet for the run, with the MVP of the playoffs */}
+          <RunSummary history={po.history} />
 
           <BigButton onClick={startDraft}>
             {phase === "champion" ? "Run It Back →" : "Try Again →"}

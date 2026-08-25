@@ -9,10 +9,12 @@ import type { MayhemCard, MayhemTeam } from "./engine";
 import { generateOpponent, pick, teamStrength, winProbability } from "./engine";
 import { staminaFactor } from "./weaknesses";
 import { sizeEdge } from "./physique";
+import { SURGE_STRENGTH_AMP } from "./engine";
 import type { Strength } from "./strengths";
 import {
   ASSISTED_ONES, ASSISTED_TWOS, BLOCKS, BOARDS, INTERIOR_FINISHES, MISSES,
-  ONE_POINTERS, STEALS, TIP_OFF, TWO_POINTERS, fill,
+  BARD_ACTIVATION, LIFTED_BY_STYLE, ONE_POINTERS, PNR_LINES, STEALS, TIP_OFF,
+  TWO_POINTERS, fill,
 } from "./commentary";
 
 export type PlayoffRound = "QF" | "SF" | "F";
@@ -34,6 +36,8 @@ export type Tick = {
   strength?: boolean;
   /** A bucket that a hot streak helped produce. */
   heated?: boolean;
+  /** Scored while a Bard had the squad lifted — shown in yellow. */
+  lifted?: boolean;
   ot?: boolean;
 };
 
@@ -56,6 +60,23 @@ export type SeasonGame = {
 };
 
 const rand = Math.random;
+// Flattens scoring share across a lineup (1 = raw averages, lower = flatter).
+const USAGE_COMPRESSION = 0.65;
+// How much harder a Bard-lifted squad attacks while the window is open.
+// A Bard surge spikes everything by this much on activation, then bleeds off
+// this much per possession until it is spent — or he sets it off again.
+const BARD_PEAK = 0.6;
+const BARD_DECAY = 0.06;
+
+/** Boost still active at possession i, given when the surges fired. */
+function bardBoostAt(i: number, activations: number[]): number {
+  let best = 0;
+  for (const start of activations) {
+    if (i < start) continue;
+    best = Math.max(best, BARD_PEAK - BARD_DECAY * (i - start));
+  }
+  return Math.max(0, best);
+}
 const jitter = (lo: number, hi: number) => lo + rand() * (hi - lo);
 // Small per-game form swing so identical matchups don't always break the same way.
 const formNoise = () => (rand() - 0.5) * 10;
@@ -111,12 +132,22 @@ type ScoreEvent = {
   assister?: MayhemCard;
   /** Set when Inferno/Microwave meaningfully boosted this shot. */
   heated?: boolean;
+  /** Taken during a Chaos takeover — these never miss. */
+  chaosShot?: boolean;
+  /** Scored while a Bard had the squad lifted. */
+  lifted?: boolean;
+  /** Produced by the two-man game between a passer and a roller. */
+  pnr?: boolean;
+  /** This possession is where a Bard surge kicks in. */
+  bardStart?: boolean;
 };
 type FlavorEvent = {
   kind: "stl" | "blk" | "reb" | "miss" | "flaw" | "strength";
   side: 0 | 1;
   player: MayhemCard;
   strength?: Strength;
+  /** The Bard call-out itself, as opposed to an ordinary strength moment. */
+  bardCall?: boolean;
 };
 type Ev = ScoreEvent | FlavorEvent;
 
@@ -124,7 +155,15 @@ function buildTeamScoreEvents(
   team: MayhemTeam,
   side: 0 | 1,
   total: number,
-  opts: { closeGame?: boolean; bardPossessions?: number | null } = {}
+  opts: {
+    closeGame?: boolean;
+    /** Whether a Bard is on this squad and fired at all this game. */
+    bardActive?: boolean;
+    /** Filled in with the average surge across the segment, for the box score. */
+    bardOut?: { avgBoost: number };
+    /** Once this player takes over, every remaining bucket is his. */
+    chaosCard?: MayhemCard | null;
+  } = {}
 ): ScoreEvent[] {
   const players = team.players;
   // Consecutive-make tracking for Inferno / Microwave. A make lengthens that
@@ -156,9 +195,7 @@ function buildTeamScoreEvents(
       (cleanVolSum || 1)
   );
   // Rough share of the segment spent inside the window.
-  const windowFrac = opts.bardPossessions
-    ? Math.min(0.6, opts.bardPossessions / Math.max(4, total))
-    : 0;
+  const windowFrac = opts.bardActive ? 0.3 : 0;
   const teamThreeShare = rawShare * (1 - windowFrac) + cleanShare * windowFrac;
   let twos = Math.round(((total * teamThreeShare) / (1 + teamThreeShare)) * jitter(0.7, 1.2));
   twos = Math.max(0, Math.min(Math.floor(total / 2), twos));
@@ -174,23 +211,39 @@ function buildTeamScoreEvents(
     [values[i], values[j]] = [values[j], values[i]];
   }
 
-  // The Bard window covers a run of consecutive possessions somewhere in the
-  // sequence; we can only place it now that the event count is known.
-  const bardWindow = (() => {
-    const n = opts.bardPossessions ?? 0;
-    if (!n || values.length === 0) return null;
-    const start = Math.floor(rand() * Math.max(1, values.length - n));
-    return { start, end: start + n - 1 };
-  })();
+  // Surges can only be placed now that the possession count is known. One or
+  // two per game, each spiking then decaying over the following possessions.
+  const activations: number[] = [];
+  if (opts.bardActive && values.length > 0) {
+    const count = 1 + (rand() < 0.4 ? 1 : 0);
+    for (let k = 0; k < count; k++) {
+      activations.push(Math.floor(rand() * Math.max(1, values.length * 0.75)));
+    }
+  }
+  if (opts.bardOut) {
+    const sum = values.reduce((acc, _v, i) => acc + bardBoostAt(i, activations), 0);
+    opts.bardOut.avgBoost = values.length > 0 ? sum / values.length : 0;
+  }
+
+  // A Chaos takeover starts partway through and runs to the final buzzer.
+  const chaosFrom =
+    opts.chaosCard && values.length > 0
+      ? Math.floor(values.length * (0.3 + rand() * 0.3))
+      : -1;
 
   return values.map((value, i) => {
+    if (chaosFrom >= 0 && i >= chaosFrom) {
+      // He shoots on every possession from here, and every one drops.
+      return { kind: "score", side, player: opts.chaosCard!, value, chaosShot: true };
+    }
     // Stamina bites as the game wears on: fading players take fewer of the
     // late buckets, and Rayan-types front-load their whole night.
     const progress = values.length > 1 ? i / (values.length - 1) : 0;
     // Inside a Bard window the squad's weaknesses stop applying, so even the
     // no-jumper players can let one go and nobody fades.
-    const w = bardWindow;
-    const lifted = !!w && i >= w.start && i <= w.end;
+    const bardBoost = bardBoostAt(i, activations);
+    // Weaknesses stay switched off for as long as any surge is still running.
+    const lifted = bardBoost > 0;
     // Deep balls can only come from players who actually have a jump shot.
     const candidates = lifted || shooters.length === 0 ? players : value === 2 ? shooters : players;
     const player = weightedPick(candidates, (p) => {
@@ -198,26 +251,51 @@ function buildTeamScoreEvents(
       const gas = lifted || p.effects.neverTired ? 1 : staminaFactor(p.weakness.stamina, progress);
       // A poor shooter can still heave one in, but it should be a genuine rarity.
       const deepFloor = lifted ? 0.08 : p.weakness.noThree ? 0.004 : 0.08;
-      const vol = lifted ? p.profile.scoreVolClean : p.profile.scoreVol;
+      // Lifted: weaknesses off AND the player's own strengths amplified.
+      const rawVol = lifted ? p.profile.scoreVolSurge : p.profile.scoreVol;
+      // Compress usage so the alpha doesn't swallow a 21-point game. Raw
+      // averages come from 11-point games, so using them straight lets the top
+      // scorer take ~78% of a longer one; the exponent keeps him clearly first
+      // without erasing his teammates.
+      const vol = Math.pow(rawVol, USAGE_COMPRESSION);
       const share = lifted ? p.profile.threeShareClean : p.profile.threeShare;
       const base = value === 2 ? vol * (share + deepFloor) : vol;
       // Heat check: each make in a row makes the next one likelier.
       const heat = 1 + p.effects.hotHand * Math.min(4, streak.get(p.id) ?? 0);
+      // Mamba: pure volume. Every shot he has taken this game — make or miss —
+      // nudges his aggression and his odds up a little further.
+      const volume = 1 + p.effects.volumeRamp * Math.min(8, i);
+      // A lifted squad plays several notches more aggressively than usual.
+      const aggression = 1 + bardBoost;
       // Clutch players want the ball late, and want it most in a tight game.
       const late = Math.max(0, progress - 0.65) / 0.35;
       const clutch = 1 + p.effects.clutch * late * (opts.closeGame ? 1 : 0.4);
-      return base * gas * heat * clutch;
+      return base * gas * heat * clutch * volume * aggression;
     });
     // Each hot-hand archetype has its own bar: an Inferno visibly catches fire
     // sooner than a Microwave does.
     const runBefore = streak.get(player.id) ?? 0;
     const heated = player.effects.hotHand > 0 && runBefore >= player.effects.heatAt;
-    // Update streaks: the scorer heats up, everyone else cools off.
+    // A streak is consecutive makes and nothing else. The moment somebody else
+    // scores, the hot player'''s run is over and his multiplier drops to 1.
     for (const p of players) {
       if (p.id === player.id) streak.set(p.id, (streak.get(p.id) ?? 0) + 1);
-      else streak.set(p.id, Math.max(0, (streak.get(p.id) ?? 0) - 1));
+      else streak.set(p.id, 0);
     }
-    const ev: ScoreEvent = { kind: "score", side, player, value, heated };
+    const ev: ScoreEvent = { kind: "score", side, player, value, heated, lifted };
+    if (activations.includes(i)) ev.bardStart = true;
+    // Pick and roll: a designated roller finishing off a designated passer.
+    // Only fires when the team actually has both halves of the pairing.
+    const passers = players.filter(
+      (p) => p.effects.pnrRole === "passer" && p.id !== player.id
+    );
+    const isRoll =
+      player.effects.pnrRole === "roller" && passers.length > 0 && value === 1 && rand() < 0.45;
+    if (isRoll) {
+      ev.assister = weightedPick(passers, (p) => p.profile.ast + 0.3);
+      ev.pnr = true;
+      return ev;
+    }
     // A Floor General turns more of the team's possessions into assisted looks.
     const assistBonus = players.reduce((m, p) => Math.max(m, p.effects.assistRate), 0);
     if (rand() < (value === 2 ? 0.3 : 0.38) + assistBonus) {
@@ -272,9 +350,35 @@ function pickFresh(pool: string[], used: Set<string>, ns = ""): string {
   return chosen;
 }
 
+// Which lifted-line pools suit a player, based on what he is actually good at.
+const STYLE_MAP: Record<string, string[]> = {
+  big: ["paint_beast", "tank", "rebound_machine", "rebound_hustler"],
+  guard: ["shifty", "slithery", "juggernaut"],
+  shooter: ["inferno", "microwave", "three_level", "mamba"],
+  passer: ["incisive_passer", "floor_general", "pnr_maestro"],
+  defender: ["perimeter_lockdown", "perimeter_prison", "rim_protector"],
+};
+
+function liftedPoolFor(card: MayhemCard): string[] {
+  const ids = new Set(card.strengths.map((s) => s.id));
+  const pool: string[] = [];
+  for (const [style, markers] of Object.entries(STYLE_MAP)) {
+    if (markers.some((m) => ids.has(m))) pool.push(...LIFTED_BY_STYLE[style]);
+  }
+  return pool.length > 0 ? pool : LIFTED_BY_STYLE.generic;
+}
+
 function describe(ev: Ev, tag: (c: MayhemCard) => string, used: Set<string>): string {
   if (ev.kind === "score") {
     const p = tag(ev.player);
+    if (ev.pnr && ev.assister) {
+      return fill(pickFresh(PNR_LINES, used), { p, a: tag(ev.assister) });
+    }
+    // Lifted players get lines that suit their game — a paint beast bullies,
+    // a guard breaks ankles — rather than one generic hype pool.
+    if (ev.lifted && !ev.assister) {
+      return fill(pickFresh(liftedPoolFor(ev.player), used, "lift:"), { p });
+    }
     if (ev.assister) {
       const a = tag(ev.assister);
       return fill(pickFresh(ev.value === 2 ? ASSISTED_TWOS : ASSISTED_ONES, used), { p, a });
@@ -287,6 +391,9 @@ function describe(ev: Ev, tag: (c: MayhemCard) => string, used: Set<string>): st
   if (ev.kind === "stl") return fill(pickFresh(STEALS, used), { p });
   if (ev.kind === "blk") return fill(pickFresh(BLOCKS, used), { p });
   if (ev.kind === "reb") return fill(pickFresh(BOARDS, used), { p });
+  if (ev.kind === "strength" && ev.bardCall) {
+    return fill(pickFresh(BARD_ACTIVATION, used, "bardcall:"), { p: tag(ev.player) });
+  }
   if (ev.kind === "strength" && ev.strength) {
     const ns = `${ev.side}:${ev.player.id}:${ev.strength.id} `;
     return fill(pickFresh(ev.strength.lines, used, ns), { p });
@@ -303,7 +410,7 @@ function describe(ev: Ev, tag: (c: MayhemCard) => string, used: Set<string>): st
 // Glue Guys lift their teammates, and a Chaos takeover turns one player
 // unguardable for the night. Cards are cloned so the shared pool is never
 // mutated — ids and names are preserved so box scores still line up.
-function effectiveTeam(team: MayhemTeam, chaosId: string | null): MayhemTeam {
+function effectiveTeam(team: MayhemTeam): MayhemTeam {
   const glue = team.players.reduce((g, p) => Math.max(g, p.effects.glue), 0);
   const glueSource = team.players.find((p) => p.effects.glue > 0);
   const players = team.players.map((card) => {
@@ -321,17 +428,9 @@ function effectiveTeam(team: MayhemTeam, chaosId: string | null): MayhemTeam {
         fgPct: Math.min(0.65, profile.fgPct * g),
       };
     }
-    if (chaosId && card.id === chaosId) {
-      // Prime-Curry mode: unguardable, and the range restriction is lifted.
-      profile = {
-        ...profile,
-        scoreVol: profile.scoreVol * 7 + 6,
-        threeShare: 0.45,
-        fgPct: 0.65,
-        fgaVol: Math.max(profile.fgaVol, 12),
-        tpaVol: Math.max(profile.tpaVol, 8),
-      };
-    }
+    // Chaos deliberately does NOT touch the profile: his shot tendency stays
+    // exactly what it always is. The takeover is handled in the event stream,
+    // where he simply takes — and makes — every remaining shot.
     return { ...card, profile };
   });
   return { ...team, players };
@@ -363,8 +462,8 @@ export function simulatePlayoffGame(
     if (chaosCard) break;
   }
 
-  const my = effectiveTeam(myRaw, chaosSide === 0 ? chaosCard!.id : null);
-  const opp = effectiveTeam(oppRaw, chaosSide === 1 ? chaosCard!.id : null);
+  const my = effectiveTeam(myRaw);
+  const opp = effectiveTeam(oppRaw);
 
   // Being the bigger squad is a real but bounded edge.
   const physicalEdge = sizeEdge(myRaw.players, oppRaw.players);
@@ -415,8 +514,10 @@ export function simulatePlayoffGame(
       ? null
       : (bardSide === 0 ? my : opp).players.find((p) => p.effects.bard) ?? null;
   const bardFired = bardCard !== null && rand() < 0.5;
-  const bardLength = 3 + Math.floor(rand() * 3); // 3-5 possessions
-  const bardFor = (side: 0 | 1) => (bardFired && side === bardSide ? bardLength : null);
+  const bardFor = (side: 0 | 1) => bardFired && side === bardSide;
+  // Filled in by the scoring builder so the box score can reflect the surge.
+  const myBard = { avgBoost: 0 };
+  const oppBard = { avgBoost: 0 };
 
   const addColour = (
     segment: Ev[],
@@ -429,10 +530,11 @@ export function simulatePlayoffGame(
       const team = side === 0 ? my : opp;
       const roll = rand();
       const kind = roll < 0.35 ? "reb" : roll < 0.6 ? "stl" : roll < 0.85 ? "blk" : "miss";
+      const surge = 1 + (side === 0 ? myBard.avgBoost : oppBard.avgBoost);
       const player = weightedPick(team.players, (p) =>
-        kind === "reb" ? p.profile.reb :
-        kind === "stl" ? p.profile.stl + 0.1 :
-        kind === "blk" ? p.profile.blk + 0.05 :
+        kind === "reb" ? p.profile.reb * surge :
+        kind === "stl" ? (p.profile.stl + 0.1) * surge :
+        kind === "blk" ? (p.profile.blk + 0.05) * surge :
         3 - p.profile.fgPct * 5
       );
       const idx = 1 + Math.floor(rand() * Math.max(1, segment.length - 1));
@@ -443,7 +545,14 @@ export function simulatePlayoffGame(
       const team = side === 0 ? my : opp;
       // A lifted squad simply doesn't show its flaws for that stretch.
       if (bardFired && side === bardSide && rand() < 0.35) continue;
-      const player = weightedPick(team.players, (p) => p.weakness.flawWeight);
+      // And a player mid-takeover certainly isn't showing his — a "still
+      // hunting the first one" line reads absurd next to a perfect night.
+      const flawCandidates =
+        chaosCard && side === chaosSide
+          ? team.players.filter((p) => p.id !== chaosCard.id)
+          : team.players;
+      if (flawCandidates.length === 0) continue;
+      const player = weightedPick(flawCandidates, (p) => p.weakness.flawWeight);
       // Gas-tank flaws belong in the back half, where they'd actually bite.
       const span = Math.max(1, segment.length - 1);
       const idx = player.weakness.stamina
@@ -494,8 +603,9 @@ export function simulatePlayoffGame(
   let otTimeline: Ev[] = [];
 
   const closeGame = closeness > 0.32;
-  const myOpts = { closeGame, bardPossessions: bardFor(0) };
-  const oppOpts = { closeGame, bardPossessions: bardFor(1) };
+  const chaosFor = (side: 0 | 1) => (chaosSide === side ? chaosCard : null);
+  const myOpts = { closeGame, bardActive: bardFor(0), bardOut: myBard, chaosCard: chaosFor(0) };
+  const oppOpts = { closeGame, bardActive: bardFor(1), bardOut: oppBard, chaosCard: chaosFor(1) };
 
   if (overtime) {
     // Regulation: both sides climb to the same number, so it ends level.
@@ -523,16 +633,21 @@ export function simulatePlayoffGame(
     4 + Math.floor(rand() * 3)
   );
 
-  // If the Bard lifted the squad, say so — the effect is invisible otherwise.
+  // The surge has to be announced BEFORE anything it boosts. Each activation
+  // gets its own call-out inserted directly ahead of the possession it starts.
   if (bardFired && bardCard && bardSide !== null) {
-    const span = Math.max(1, timeline.length - 1);
-    const idx = 1 + Math.floor(span * (0.2 + rand() * 0.5));
-    timeline.splice(Math.min(idx, Math.max(1, timeline.length - 1)), 0, {
-      kind: "strength",
-      side: bardSide,
-      player: bardCard,
-      strength: bardCard.strengths.find((st) => st.bard)!,
-    });
+    const bardStrength = bardCard.strengths.find((st) => st.bard)!;
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      const ev = timeline[i];
+      if (ev.kind !== "score" || !ev.bardStart || ev.side !== bardSide) continue;
+      timeline.splice(i, 0, {
+        kind: "strength",
+        side: bardSide,
+        player: bardCard,
+        strength: bardStrength,
+        bardCall: true,
+      });
+    }
   }
 
   // A takeover is a marquee moment — make sure the feed always shows it.
@@ -585,6 +700,8 @@ export function simulatePlayoffGame(
 
   let runningMy = 0;
   let runningOpp = 0;
+  // Buckets scored during a takeover — these never missed.
+  const chaosMakes = new Map<string, number>();
 
   const emitTicks = (segment: Ev[], count: number, isOt: boolean, isFinalSegment: boolean) => {
     let cursor = 0;
@@ -605,6 +722,7 @@ export function simulatePlayoffGame(
           const b = boxFor(ev.side, ev.player);
           b.line.pts += ev.value;
           b.line.fgm += 1;
+          if (ev.chaosShot) chaosMakes.set(boxKey(ev.side, ev.player), (chaosMakes.get(boxKey(ev.side, ev.player)) ?? 0) + 1);
           if (ev.value === 2) b.line.tpm += 1;
           if (ev.assister) boxFor(ev.side, ev.assister).line.ast += 1;
         } else {
@@ -625,12 +743,16 @@ export function simulatePlayoffGame(
       }
       // Narrate the most recent action, but give a player's signature weakness
       // priority when one happened in this stretch — those are worth seeing.
+      // A Bard call-out always wins its tick: everything it boosts comes after,
+      // so it can never be the thing that gets dropped from the broadcast.
+      const bardCallEv = chunk.find((e) => e.kind === "strength" && e.bardCall);
       const notable = chunk.filter((e) => e.kind === "flaw" || e.kind === "strength");
       // The game has to end on the winning bucket, never on a turnover.
       const closingScore = isLastChunk
         ? [...chunk].reverse().find((e) => e.kind === "score")
         : undefined;
       const headline =
+        bardCallEv ??
         closingScore ??
         (notable.length > 0 && rand() < 0.65 ? pick(notable) : chunk[chunk.length - 1]);
       ticks.push({
@@ -640,6 +762,7 @@ export function simulatePlayoffGame(
         flaw: headline.kind === "flaw",
         strength: headline.kind === "strength",
         heated: headline.kind === "score" && !!headline.heated,
+        lifted: headline.kind === "score" && !!headline.lifted,
         ot: isOt || undefined,
       });
     }
@@ -661,22 +784,43 @@ export function simulatePlayoffGame(
   // Longer games mean more possessions, but sub-linearly — a 21-point finals
   // shouldn't double everyone's rebounds.
   const durationScale = Math.min(1.3, Math.pow((myScore + oppScore) / 22, 0.45));
-  for (const box of boxes.values()) {
+  for (const [key, box] of boxes.entries()) {
     const { profile } = box.card;
     const l = box.line;
+    // A Bard surge lifts everything, not just scoring: boards, steals, blocks
+    // and shooting efficiency all ride it for as long as it lasts.
+    const surge = key.startsWith("0:") ? myBard.avgBoost : oppBard.avgBoost;
+    const surgeMult = 1 + surge;
+    // A surge also amplifies the bonus half of the player's own strength
+    // multipliers, scaled by how much of the game the surge actually covered.
+    const amp = (statMult: number) => {
+      if (surge <= 0 || statMult <= 1) return 1;
+      const extra = (statMult - 1) * (SURGE_STRENGTH_AMP - 1) * Math.min(1, surge / BARD_PEAK);
+      return 1 + extra;
+    };
+    const { effects } = box.card;
     const missFlavor = l.fga; // only narrated bricks so far
-    const volumeFga = poissonish(profile.fgaVol * durationScale * jitter(0.8, 1.15));
-    // hot scoring nights come with hot efficiency — cap the implied volume
-    l.fga = Math.max(l.fgm + missFlavor, volumeFga, Math.ceil(l.fgm * 1.8));
+    const takeover = chaosMakes.get(key) ?? 0;
+    if (takeover > 0) {
+      // Every shot after activation went in, so his only misses are the
+      // handful he put up before he caught fire.
+      const before = l.fgm - takeover;
+      const earlyMisses = poissonish(Math.max(0, before) * 1.6);
+      l.fga = l.fgm + earlyMisses + missFlavor;
+    } else {
+      const volumeFga = poissonish((profile.fgaVol / surgeMult) * durationScale * jitter(0.8, 1.15));
+      // hot scoring nights come with hot efficiency — cap the implied volume
+      l.fga = Math.max(l.fgm + missFlavor, volumeFga, Math.ceil(l.fgm * 1.8));
+    }
     const volumeTpa = poissonish(profile.tpaVol * durationScale * jitter(0.75, 1.2));
     // A player who only shot deep during a lifted stretch has no attempt volume
     // of his own, so give the make a miss or two around it rather than 1-for-1.
     const liftedExtra = l.tpm > 0 && profile.tpaVol < 0.2 ? poissonish(0.9) : 0;
     l.tpa = Math.max(l.tpm + liftedExtra, Math.min(l.fga, volumeTpa));
     l.tpa = Math.min(l.tpa, l.fga);
-    l.reb += poissonish(profile.reb * durationScale * jitter(0.7, 1.05));
-    l.stl += poissonish(profile.stl * durationScale * 0.7);
-    l.blk += poissonish(profile.blk * durationScale * 0.6);
+    l.reb += poissonish(profile.reb * surgeMult * amp(effects.rebMult) * durationScale * jitter(0.7, 1.05));
+    l.stl += poissonish(profile.stl * surgeMult * amp(effects.stlMult) * durationScale * 0.7);
+    l.blk += poissonish(profile.blk * surgeMult * amp(effects.blkMult) * durationScale * 0.6);
   }
 
   return {

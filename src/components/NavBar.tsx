@@ -7,7 +7,8 @@ const NavBar = () => {
     sticky top-0 left-0
     w-full
     items-center
-    px-6
+    px-3
+    sm:px-6
     lg:px-[8vw]
     flex flex-row
     justify-between
@@ -19,7 +20,7 @@ const NavBar = () => {
   "
     >
       <img className="w-12 md:w-24" src={mcblLogo}></img>
-      <div className="flex gap-6 lg:gap-12 justify-between">
+      <div className="flex gap-3 sm:gap-6 lg:gap-12 justify-between">
         <NavLink to="/" end>
           {({ isActive }) => (
             <div className="flex flex-col items-center">

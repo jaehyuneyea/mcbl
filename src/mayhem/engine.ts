@@ -16,6 +16,9 @@ import { weaknessFor, type Weakness } from "./weaknesses";
 import { effectsOf, strengthsFor, type Strength, type StrengthEffects } from "./strengths";
 import { physiqueFor, type Physique } from "./physique";
 
+// A Bard surge amplifies the bonus half of a teammate's strength multipliers.
+export const SURGE_STRENGTH_AMP = 1.5;
+
 const TEAM_NAMES: Record<string, string> = {
   jjp: "Jah Jah Pelicans",
   ns: "Vancouver Vincents",
@@ -67,6 +70,7 @@ export type MayhemCard = {
     // "Clean" values ignore this player's weakness penalties. A Bard window
     // temporarily swaps them in, which is what "weaknesses stop mattering" means.
     scoreVolClean: number;
+    scoreVolSurge: number;
     threeShareClean: number;
   };
 };
@@ -197,7 +201,7 @@ export function buildPlayerPool(raw: GameDoc[]): MayhemCard[] {
     const champion = !!a.teamCode && championByYear[year] === a.teamCode;
     const weakness = weaknessFor(name);
     const strengths = strengthsFor(name);
-    const effects = effectsOf(strengths);
+    const effects = effectsOf(strengths, name);
     const physique = physiqueFor(name);
     // A big man who avoids contact converts far less of his frame into offense.
     const softMult = weakness.soft ? 0.85 : 1;
@@ -244,6 +248,12 @@ export function buildPlayerPool(raw: GameDoc[]): MayhemCard[] {
         // Efficiency means the same makes on fewer attempts.
         fgaVol: per("fga") * (1 - effects.fgPctBoost * 2),
         scoreVolClean: Math.max(0.15, avg.pts * effects.scoreMult),
+        // During a Bard surge a teammate's own strengths are amplified too, so
+        // the bonus portion of their scoring multiplier counts for half again.
+        scoreVolSurge: Math.max(
+          0.15,
+          avg.pts * (1 + (effects.scoreMult - 1) * SURGE_STRENGTH_AMP)
+        ),
         // While a Bard has them lifted, even a non-shooter is willing to let it
         // fly — the floor represents that, since their real share is often zero.
         threeShareClean: Math.max(baseThreeShare, 0.18),

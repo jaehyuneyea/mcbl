@@ -19,6 +19,8 @@ export type Strength = {
   hotHand?: number; // each consecutive make raises the next one's odds
   heatAt?: number; // consecutive makes needed before the heat check is visible
   clutch?: number; // extra scoring share late in tight games
+  volumeRamp?: number; // aggression grows with every shot, make or miss
+  pnr?: boolean; // runs pick and roll (role comes from PNR_ROLES)
   scoreMult?: number; // scoring usage
   passMult?: number; // assist frequency
   assistRate?: number; // raises how often the whole team scores off an assist
@@ -40,8 +42,8 @@ export const STRENGTHS: Record<string, Strength> = {
     id: "inferno",
     label: "Inferno",
     detail: "Every make raises the odds of the next one — and it keeps climbing.",
-    bonus: 0.085,
-    hotHand: 0.46,
+    bonus: 0.075,
+    hotHand: 0.28,
     heatAt: 2,
     lines: [
       "{p} is absolutely scorching — that's another one",
@@ -55,8 +57,8 @@ export const STRENGTHS: Record<string, Strength> = {
     id: "microwave",
     label: "Microwave",
     detail: "Heats up in a hurry once the first one drops.",
-    bonus: 0.04,
-    hotHand: 0.18,
+    bonus: 0.035,
+    hotHand: 0.14,
     heatAt: 4,
     lines: [
       "{p} is heating up in a hurry",
@@ -313,6 +315,34 @@ export const STRENGTHS: Record<string, Strength> = {
       "{p} pins it against the glass — no chance",
     ],
   },
+  creative_finisher: {
+    id: "creative_finisher",
+    label: "Creative Finisher",
+    detail: "Converts around the rim at angles most players cannot.",
+    bonus: 0.06,
+    scoreMult: 1.08,
+    fgPctBoost: 0.05,
+    lines: [
+      "{p} contorts around the help and lays it in off the wrong foot",
+      "{p} finishes on the far side of the rim with the defender draped on him",
+      "{p} changes hands mid-air and drops it in",
+      "{p} finds an angle at the rim that shouldn'''t have been there",
+      "{p} hangs, waits out the shot blocker, and finishes soft off the glass",
+    ],
+  },
+  pnr_maestro: {
+    id: "pnr_maestro",
+    label: "Pick & Roll Maestro",
+    detail: "Deadly in the two-man game — lethal when paired with the right partner.",
+    bonus: 0.06,
+    pnr: true,
+    lines: [
+      "{p} reads the coverage perfectly out of the two-man game",
+      "{p} comes off the screen and picks the defense apart",
+      "{p} runs the pick and roll like he'''s done it a thousand times",
+      "{p} gets exactly the switch he wanted off the screen",
+    ],
+  },
   circus: {
     id: "circus",
     label: "Circus",
@@ -344,9 +374,12 @@ export const STRENGTHS: Record<string, Strength> = {
   mamba: {
     id: "mamba",
     label: "Mamba Mentality",
-    detail: "Makes the toughest shots on the floor, from anywhere, through anyone.",
-    bonus: 0.08,
+    detail:
+      "Makes the toughest shots on the floor, and the more he fires the more dangerous he gets — make or miss.",
+    bonus: 0.095,
     scoreMult: 1.15,
+    clutch: 0.9,
+    volumeRamp: 0.07,
     lines: [
       "{p} rises through two bodies and drills the toughest shot of the night",
       "{p} takes the contested fadeaway and buries it anyway",
@@ -358,8 +391,8 @@ export const STRENGTHS: Record<string, Strength> = {
     id: "bard",
     label: "Bard",
     detail:
-      "Every so often his energy lifts the squad so much his teammates' weaknesses stop mattering for a few possessions.",
-    bonus: 0.07,
+      "When his energy catches, the whole squad surges — every stat and every tendency spikes 60%, then fades a little each possession until it wears off or he sets it off again.",
+    bonus: 0.09,
     bard: true,
     lines: [
       "{p} has the whole team fired up — nobody is playing scared right now",
@@ -384,9 +417,10 @@ export const STRENGTHS: Record<string, Strength> = {
   chaos: {
     id: "chaos",
     label: "Chaos",
-    detail: "Once in a blue moon he becomes unguardable and ices the game single-handed.",
+    detail:
+      "Roughly once in thirty games he takes over completely — from that moment he shoots every possession and does not miss.",
     bonus: 0.05,
-    chaosChance: 0.08,
+    chaosChance: 1 / 30,
     freeThree: true,
     lines: [
       "{p} pulls from the logo — and it goes. Something has changed.",
@@ -400,21 +434,31 @@ export const STRENGTHS: Record<string, Strength> = {
 
 // Which strengths each player carries.
 export const PLAYER_STRENGTHS: Record<string, string[]> = {
-  "Jae Hyune Yea": ["inferno", "clutch", "incisive_passer", "shot_creator"],
+  "Jae Hyune Yea": ["inferno", "clutch", "incisive_passer", "shot_creator", "pnr_maestro"],
   "James Lee": ["perimeter_lockdown", "incisive_passer", "efficient", "glue_guy", "never_tired"],
-  "Rayan Bilkhu": ["tank", "rebound_hustler", "paint_beast"],
-  "Jirah Almario": ["microwave", "three_level", "juggernaut", "shot_creator", "incisive_passer"],
-  "Matthew Kim": ["rebound_machine", "perimeter_lockdown"],
+  "Rayan Bilkhu": ["tank", "rebound_hustler", "paint_beast", "pnr_maestro"],
+  "Jirah Almario": ["microwave", "three_level", "juggernaut", "shot_creator", "incisive_passer", "pnr_maestro"],
+  "Matthew Kim": ["rebound_machine", "perimeter_lockdown", "pnr_maestro"],
   "Sonny Nguyen": ["perimeter_lockdown", "warrior"],
-  "David Chang": ["incisive_passer", "perimeter_prison", "floor_general", "shifty", "warrior"],
+  "David Chang": ["incisive_passer", "perimeter_prison", "floor_general", "shifty", "warrior", "pnr_maestro"],
   "Nathean Moore": ["rebound_machine", "paint_beast", "tank", "circus"],
   "Gabriel Cho": ["two_way", "perimeter_prison", "rim_protector", "never_tired"],
-  "Vincent Kang": ["mamba", "microwave", "clutch", "rim_protector"],
-  "Harvir Dhaliwal": ["perimeter_lockdown", "bard"],
+  "Vincent Kang": ["mamba", "microwave", "clutch", "shot_creator", "rim_protector"],
+  "Harvir Dhaliwal": ["perimeter_lockdown", "creative_finisher", "bard"],
   "Lex Rowheder": ["slithery", "juggernaut", "rebound_machine"],
-  "Brenin Moore": ["microwave", "three_level"],
+  "Brenin Moore": ["microwave", "three_level", "rim_protector", "creative_finisher"],
   "Brandon Wong": ["chaos"],
   "Connor Maclean": ["shot_creator", "glue_guy"],
+};
+
+// Who does what in the two-man game. A team only gets the pick-and-roll bonus
+// when it has at least one of each.
+export const PNR_ROLES: Record<string, "passer" | "roller"> = {
+  "Jae Hyune Yea": "passer",
+  "David Chang": "passer",
+  "Jirah Almario": "passer",
+  "Matthew Kim": "roller",
+  "Rayan Bilkhu": "roller",
 };
 
 export function strengthsFor(name: string): Strength[] {
@@ -429,6 +473,8 @@ export type StrengthEffects = {
   hotHand: number;
   heatAt: number;
   clutch: number;
+  volumeRamp: number;
+  pnrRole: "passer" | "roller" | null;
   scoreMult: number;
   passMult: number;
   assistRate: number;
@@ -446,12 +492,14 @@ export type StrengthEffects = {
 const DIMINISH = [1, 0.7, 0.5, 0.35, 0.25, 0.2];
 const MAX_RATING_MULT = 1.22;
 
-export function effectsOf(list: Strength[]): StrengthEffects {
+export function effectsOf(list: Strength[], playerName = ""): StrengthEffects {
   const eff: StrengthEffects = {
     ratingMult: 1,
     hotHand: 0,
     heatAt: 99,
     clutch: 0,
+    volumeRamp: 0,
+    pnrRole: null,
     scoreMult: 1,
     passMult: 1,
     assistRate: 0,
@@ -477,6 +525,7 @@ export function effectsOf(list: Strength[]): StrengthEffects {
     eff.hotHand = Math.max(eff.hotHand, s.hotHand ?? 0);
     eff.heatAt = Math.min(eff.heatAt, s.heatAt ?? 99);
     eff.clutch = Math.max(eff.clutch, s.clutch ?? 0);
+    eff.volumeRamp = Math.max(eff.volumeRamp, s.volumeRamp ?? 0);
     eff.scoreMult *= s.scoreMult ?? 1;
     eff.passMult *= s.passMult ?? 1;
     eff.assistRate = Math.max(eff.assistRate, s.assistRate ?? 0);
@@ -490,5 +539,6 @@ export function effectsOf(list: Strength[]): StrengthEffects {
     eff.chaosChance = Math.max(eff.chaosChance, s.chaosChance ?? 0);
     eff.freeThree = eff.freeThree || !!s.freeThree;
   }
+  if (list.some((s) => s.pnr)) eff.pnrRole = PNR_ROLES[playerName] ?? null;
   return eff;
 }
