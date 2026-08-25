@@ -68,6 +68,18 @@ const NavBar = () => {
             </div>
           )}
         </NavLink>
+        <NavLink to="/mayhem" end>
+          {({ isActive }) => (
+            <div className="flex flex-col items-center">
+              <span className="text-text-secondary text-xs lg:text-xl font-medium">Mayhem</span>
+              <div
+                className={`w-full h-[1px] mt-[4px] bg-text-primary transform origin-left transition-transform duration-300 ease-in-out ${
+                  isActive ? "opacity-100 scale-x-100" : "scale-x-0 opacity-0"
+                }`}
+              ></div>
+            </div>
+          )}
+        </NavLink>
       </div>
       <div></div>
     </header>
